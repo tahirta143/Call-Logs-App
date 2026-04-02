@@ -20,6 +20,8 @@ import 'Provider/product/product_provider.dart';
 import 'Provider/staff/StaffProvider.dart';
 import 'View/SplashScreenMain.dart';
 import 'View/splashScreen.dart';
+import 'Provider/theme_provider.dart';
+import 'compoents/app_theme.dart';
 
 void main() {
   runApp(
@@ -39,9 +41,9 @@ void main() {
       ChangeNotifierProvider(create: (_) => MeetingTrackProvider()),
       ChangeNotifierProvider(create: (_) => FollowUpTrackProvider()),
       ChangeNotifierProvider(create: (_) => StaffTrackProvider()),
-
+      ChangeNotifierProvider(create: (_) => ThemeProvider()),
     ],
-    child: MyApp(),)
+    child: const MyApp(),)
   );
 }
 
@@ -51,14 +53,17 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-
-        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF5B86E5),),
-      ),
-      home: OnboardingScreen()//Splashscreen()
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Infinity',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
+          home: OnboardingScreen(),
+        );
+      },
     );
   }
 }

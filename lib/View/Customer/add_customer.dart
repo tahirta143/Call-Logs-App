@@ -263,6 +263,7 @@ import 'package:provider/provider.dart';
 import '../../Provider/customer/customer_provider.dart';
 import '../../Provider/product/product_provider.dart';
 import '../../Provider/staff/StaffProvider.dart';
+import '../../compoents/responsive_helper.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   const AddCustomerScreen({super.key});
@@ -481,9 +482,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           // ),
           SliverAppBar(
             pinned: true,
-            expandedHeight: 80,
+            expandedHeight: context.sh(0.1),
             elevation: 0,
-            backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+            backgroundColor: theme.appBarTheme.backgroundColor,
             surfaceTintColor: isDarkMode ? Colors.grey[800] : Colors.white,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -530,8 +531,8 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                 child: GestureDetector(
                                   onTap: () => _showImagePicker(context),
                                   child: CircleAvatar(
-                                    radius: 50,
-                                    backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[100],
+                                    radius: context.sw(0.12),
+                                    backgroundColor: theme.cardColor,
                                     backgroundImage: provider.companyLogo != null
                                         ? FileImage(provider.companyLogo!)
                                         : null,
@@ -1192,11 +1193,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           size: 22,
         ),
         filled: true,
-        fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
+        fillColor: theme.cardColor,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
@@ -1252,7 +1249,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           size: 20,
         ),
         filled: true,
-        fillColor: isDarkMode ? Colors.grey[900] : Colors.white,
+        fillColor: theme.cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(

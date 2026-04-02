@@ -14,34 +14,36 @@ class MonthlyTrendsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F8FF),
+        color: isDarkMode ? Colors.grey[800] : const Color(0xFFF5F8FF),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDarkMode ? Colors.grey[700]! : Colors.blue.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Monthly Call Trends",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  "View report →",
-                  style: TextStyle(color: Colors.blue),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
+              const Icon(Icons.analytics_outlined, color: Colors.blue, size: 20),
             ],
           ),
           const SizedBox(height: 4),
-          // Total Calls
           Text(
             "$totalCalls calls",
             style: const TextStyle(
@@ -50,8 +52,7 @@ class MonthlyTrendsChart extends StatelessWidget {
               color: Colors.blue,
             ),
           ),
-          const SizedBox(height: 16),
-          // Chart
+          const SizedBox(height: 24),
           AspectRatio(
             aspectRatio: 1.5,
             child: BarChart(
@@ -64,7 +65,7 @@ class MonthlyTrendsChart extends StatelessWidget {
                   horizontalInterval: 150,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: isDarkMode ? Colors.grey[700] : Colors.grey.withOpacity(0.3),
                       strokeWidth: 1,
                     );
                   },
@@ -79,12 +80,12 @@ class MonthlyTrendsChart extends StatelessWidget {
                           return const SizedBox();
                         }
                         return Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
+                          padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
                             monthlyData[index]["month"],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.black54,
+                              color: isDarkMode ? Colors.grey[400] : Colors.black54,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -101,25 +102,38 @@ class MonthlyTrendsChart extends StatelessWidget {
                           padding: const EdgeInsets.only(right: 8.0),
                           child: Text(
                             value.toInt().toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.black54,
+                              color: isDarkMode ? Colors.grey[400] : Colors.black54,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         );
                       },
-                      reservedSize: 40, // Reserve space for Y-axis labels
+                      reservedSize: 40,
                     ),
                   ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => isDarkMode ? Colors.grey[900]! : Colors.blueAccent,
+                    tooltipBorderRadius: BorderRadius.circular(8),
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        '${monthlyData[groupIndex]["month"]}\n',
+                        const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        children: [
+                          const TextSpan(
+                            text: ' calls',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                barTouchData: BarTouchData(enabled: false),
                 barGroups: monthlyData.asMap().entries.map((entry) {
                   int index = entry.key;
                   final item = entry.value;
@@ -130,12 +144,16 @@ class MonthlyTrendsChart extends StatelessWidget {
                         toY: (item["count"] ?? 0).toDouble(),
                         color: Colors.blue,
                         width: 12,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: _calculateMaxY(),
+                          color: isDarkMode ? Colors.white10 : Colors.blue.withOpacity(0.05),
+                        ),
                       ),
                     ],
                   );
                 }).toList(),
-                // Set the max Y value based on your data
                 maxY: _calculateMaxY(),
               ),
             ),
@@ -151,8 +169,6 @@ class MonthlyTrendsChart extends StatelessWidget {
       double value = (item["count"] ?? 0).toDouble();
       if (value > maxValue) maxValue = value;
     }
-    // Add some padding to the max value for better visualization
-    // Round up to the nearest 150 for clean intervals
     return ((maxValue * 1.2) / 150).ceil() * 150.0;
   }
 }

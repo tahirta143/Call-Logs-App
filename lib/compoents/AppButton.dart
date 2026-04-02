@@ -1,31 +1,53 @@
 import 'package:flutter/material.dart';
+import '../compoents/responsive_helper.dart';
 
 class AppButton extends StatelessWidget {
   final String title;
   final Function() press;
-  final double width;
-  const AppButton({super.key,
+  final double? width;
+  
+  const AppButton({
+    super.key,
     required this.title,
     required this.press,
-    required this.width});
+    this.width,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight=MediaQuery.of(context).size.height;
-    final screenWidget=MediaQuery.of(context).size.width;
-
+    final theme = Theme.of(context);
+    
     return InkWell(
-      onTap:press,
+      onTap: press,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height:screenHeight*0.08,
-
+        height: context.sh(0.07), // 7% of screen height
         width: width ?? double.infinity,
-        decoration:  BoxDecoration(
-          color: Color(0xFF5B86E5),
-          borderRadius: BorderRadius.circular(10),
-
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Center(child: Text(title,style: TextStyle(color: Colors.white),)),
+        child: Center(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
       ),
     );
   }

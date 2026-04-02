@@ -1,439 +1,16 @@
-//
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-// import '../../Provider/FollowUp/FollowupProvider.dart';
-// import '../../model/FollowUpModel.dart';
-//
-// class FollowUpScreen extends StatefulWidget {
-//   const FollowUpScreen({super.key});
-//
-//   @override
-//   State<FollowUpScreen> createState() => _FollowUpScreenState();
-// }
-//
-// class _FollowUpScreenState extends State<FollowUpScreen> {
-//   String? userRole;
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadUserRole();
-//     Future.microtask(() {
-//       final provider = Provider.of<FollowUpProvider>(context, listen: false);
-//       provider.fetchFollowUps();
-//     });
-//   }
-//   Future<void> _loadUserRole() async {
-//     final prefs = await SharedPreferences.getInstance();
-//     setState(() {
-//       userRole = prefs.getString('role') ?? 'user'; // default = user
-//     });
-//
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final provider = Provider.of<FollowUpProvider>(context);
-//
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Center(child: const Text('Follow Up',
-//             style: TextStyle(
-//               color: Colors.white,
-//               fontWeight: FontWeight.bold,
-//               fontSize: 22,
-//               letterSpacing: 1.2,
-//             )),
-//         ),
-//         centerTitle: true,
-//         elevation: 6,
-//         flexibleSpace: Container(
-//           decoration: const BoxDecoration(
-//             gradient: LinearGradient(
-//               colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
-//               begin: Alignment.topLeft,
-//               end: Alignment.bottomRight,
-//             ),
-//           ),
-//         ),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//       body: provider.isLoading
-//           ? const Center(child: CircularProgressIndicator())
-//           : provider.errorMessage != null
-//           ? Center(child: Text(provider.errorMessage!))
-//           : provider.followUps.isEmpty
-//           ? const Center(child: Text('No follow-ups found'))
-//           : ListView.builder(
-//         itemCount: provider.followUps.length,
-//         itemBuilder: (context, index) {
-//           final item = provider.followUps[index];
-//           final staff =
-//               item.person?.assignedStaff?.username ?? 'Unassigned';
-//           final date = item.followDates.isNotEmpty
-//               ? item.followDates.first.split('T').first
-//               : '-';
-//           final time = item.followTimes.isNotEmpty
-//               ? item.followTimes.first
-//               : '-';
-//           final phoneNumber =
-//           (item.person?.persons.isNotEmpty ?? false)
-//               ? item.person!.persons.first.phoneNumber
-//               : '-';
-//
-//           return Card(
-//             margin: const EdgeInsets.symmetric(
-//                 horizontal: 12, vertical: 8),
-//             elevation: 3,
-//             shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(12)),
-//             child: ListTile(
-//               leading:
-//               const Icon(Icons.business, color: Color(0xFF5B86E5)),
-//               title: Text(
-//                 item.companyName,
-//                 style: const TextStyle(
-//                   fontWeight: FontWeight.bold,
-//                   fontSize: 16,
-//                 ),
-//               ),
-//               subtitle: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   Text('Staff: $staff'),
-//                   Text('Phone: $phoneNumber'),
-//                   Text('Date: $date • Time: $time'),
-//                   Text('Status: ${item.status}'),
-//                   Text('Action: ${item.action ?? "-"}'),
-//                 ],
-//               ),
-//               trailing: Row(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   IconButton(
-//                     icon: const Icon(Icons.remove_red_eye, color: Colors.teal),
-//                     onPressed: () {
-//                       _showDetailsDialog(context, item);
-//                     },
-//                   ),
-//                   // 🔹 Update Button
-//                   IconButton(
-//                     icon: const Icon(Icons.edit,
-//                         color: Color(0xFF5B86E5)),
-//                     onPressed: () {
-//                       _showUpdateDialog(context, item, provider);
-//                     },
-//                   ),
-//                   // 🔹 Delete Button
-//                   if (userRole == 'admin')
-//                   IconButton(
-//                     icon: const Icon(Icons.delete, color: Colors.red),
-//                     onPressed: () async {
-//                       final confirm = await showDialog(
-//                         context: context,
-//                         builder: (ctx) => AlertDialog(
-//                           title: const Text('Delete Confirmation'),
-//                           content: const Text('Are you sure you want to delete this meeting?'),
-//                           actions: [
-//                             TextButton(
-//                               onPressed: () => Navigator.pop(ctx, false),
-//                               child: const Text('Cancel'),
-//                             ),
-//                             TextButton(
-//                               onPressed: () => Navigator.pop(ctx, true),
-//                               child: const Text('Delete'),
-//                             ),
-//                           ],
-//                         ),
-//                       );
-//
-//                       if (confirm == true) {
-//                         await provider.deleteFollowUp(item.id);
-//                       }
-//                     },
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-//
-//   void _showUpdateDialog(
-//       BuildContext context, dynamic item, FollowUpProvider provider) {
-//     final companyController =
-//     TextEditingController(text: item.companyName ?? '');
-//     final phoneController =
-//     TextEditingController(text: item.person?.persons.first.phoneNumber ?? '');
-//     final dateController = TextEditingController(
-//         text: item.followDates.isNotEmpty
-//             ? item.followDates.first.split('T').first
-//             : '');
-//     final timeController = TextEditingController(
-//         text: item.followTimes.isNotEmpty ? item.followTimes.first : '');
-//     final remarkController = TextEditingController(text: item.action ?? '');
-//
-//     // ✅ Declare this BEFORE the Dropdown widget
-//     final validStatuses = ['Complete', 'Hold', 'Close'];
-//     if (item.status != null && !validStatuses.contains(item.status)) {
-//       validStatuses.add(item.status!);
-//     }
-//     String status = item.status ?? 'Hold';
-//
-//     showDialog(
-//       context: context,
-//       builder: (context) {
-//         return AlertDialog(
-//           title: const Text('Update Follow-Up'),
-//           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-//           content: SingleChildScrollView(
-//             child: Column(
-//               children: [
-//                 TextField(
-//                   controller: companyController,
-//                   decoration: const InputDecoration(
-//                       labelText: 'Company Name', border: OutlineInputBorder()),
-//                 ),
-//                 const SizedBox(height: 10),
-//                 TextField(
-//                   controller: phoneController,
-//                   decoration: const InputDecoration(
-//                       labelText: 'Phone Number', border: OutlineInputBorder()),
-//                   keyboardType: TextInputType.phone,
-//                 ),
-//                 const SizedBox(height: 10),
-//                 TextField(
-//                   controller: dateController,
-//                   readOnly: true,
-//                   decoration: InputDecoration(
-//                     labelText: 'Next Follow Up Date',
-//                     border: const OutlineInputBorder(),
-//                     suffixIcon: IconButton(
-//                       icon: const Icon(Icons.calendar_today),
-//                       onPressed: () async {
-//                         final picked = await showDatePicker(
-//                           context: context,
-//                           initialDate: DateTime.tryParse(dateController.text) ??
-//                               DateTime.now(),
-//                           firstDate: DateTime(2020),
-//                           lastDate: DateTime(2100),
-//                         );
-//                         if (picked != null) {
-//                           dateController.text =
-//                               picked.toIso8601String().split('T').first;
-//                         }
-//                       },
-//                     ),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 10),
-//                 TextField(
-//                   controller: timeController,
-//                   readOnly: true,
-//                   decoration: InputDecoration(
-//                     labelText: 'Next Follow Up Time',
-//                     border: const OutlineInputBorder(),
-//                     suffixIcon: IconButton(
-//                       icon: const Icon(Icons.access_time),
-//                       onPressed: () async {
-//                         final picked = await showTimePicker(
-//                           context: context,
-//                           initialTime: TimeOfDay.now(),
-//                         );
-//                         if (picked != null) {
-//                           timeController.text = picked.format(context).toString();
-//                         }
-//                       },
-//                     ),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 10),
-//                 TextField(
-//                   controller: remarkController,
-//                   decoration: const InputDecoration(
-//                       labelText: 'Customer Remark',
-//                       border: OutlineInputBorder()),
-//                   maxLines: 2,
-//                 ),
-//                 const SizedBox(height: 10),
-//                 // ✅ Now use it here safely
-//                 DropdownButtonFormField<String>(
-//                   decoration: const InputDecoration(
-//                     labelText: 'Status',
-//                     border: OutlineInputBorder(),
-//                   ),
-//                   value: status,
-//                   items: validStatuses
-//                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-//                       .toList(),
-//                   onChanged: (value) {
-//                     if (value != null) status = value;
-//                   },
-//                 ),
-//               ],
-//             ),
-//           ),
-//           actions: [
-//             TextButton(
-//               child: const Text('Cancel'),
-//               onPressed: () => Navigator.pop(context),
-//             ),
-//             ElevatedButton(
-//               onPressed: () {
-//                 provider.updateFollowUp(
-//                   id: item.id,
-//                   companyName: companyController.text,
-//                   phone: phoneController.text,
-//                   date: dateController.text,
-//                   time: timeController.text,
-//                   remark: remarkController.text,
-//                   status: status,
-//                 );
-//                 Navigator.pop(context);
-//               },
-//               style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF5B86E5)),
-//               child: const Text('Update',style: TextStyle(color:Colors.white),),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-//
-//
-//
-//
-//
-//   void _showDetailsDialog(BuildContext context, FollowUpData item) {
-//     showDialog(
-//       context: context,
-//       builder: (context) {
-//         final productName = item.product?.name ?? '-';
-//         final price = item.product?.price?.toString() ?? '-';
-//         final staffName = item.person?.assignedStaff?.username ?? 'Unassigned';
-//         final contactMethod = item.contactMethod ?? '-';
-//         final designation = item.designation ?? '-';
-//         final referToStaff = item.referToStaff ?? '-';
-//         final reference = item.reference ?? '-';
-//
-//         final persons = item.person?.persons ?? [];
-//         final dates = item.followDates.join(', ');
-//         final times = item.followTimes.join(', ');
-//         final details = item.details.join('\n');
-//
-//         return AlertDialog(
-//           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-//           title: Row(
-//             children: const [
-//               Icon(Icons.business, color: Color(0xFF5B86E5)),
-//               SizedBox(width: 8),
-//               Text(
-//                 'Company Details',
-//                 style: TextStyle(fontWeight: FontWeight.bold),
-//               ),
-//             ],
-//           ),
-//
-//           // 👇 Add height constraint + scroll
-//           content: ConstrainedBox(
-//             constraints: BoxConstraints(
-//               maxHeight: MediaQuery.of(context).size.height * 0.7,
-//             ),
-//             child: SingleChildScrollView(
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   _infoRow('🏢 Company', item.companyName),
-//                   _infoRow('🧑‍💼 Staff', staffName),
-//                   _infoRow('📦 Product', productName),
-//                   _infoRow('💰 Price', price),
-//                   _infoRow('📞 Contact Method', contactMethod),
-//                   _infoRow('🎯 Status', item.status),
-//                   _infoRow('🕓 Follow Dates', dates),
-//                   _infoRow('⏰ Follow Times', times),
-//                   _infoRow('📝 Action', item.action ?? '-'),
-//                   _infoRow('📋 Details', details.isNotEmpty ? details : '-'),
-//
-//                   const Divider(),
-//
-//                   const Text(
-//                     '👥 Person Details:',
-//                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-//                   ),
-//                   const SizedBox(height: 6),
-//
-//                   // 👇 List of persons
-//                   ...persons.map((p) => Padding(
-//                     padding: const EdgeInsets.symmetric(vertical: 4),
-//                     child: Column(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: [
-//                         Text(
-//                           '• ${p.fullName}',
-//                           style: const TextStyle(fontSize: 14),
-//                         ),
-//                         Text(". ${p.phoneNumber}", style: const TextStyle(fontSize: 14),)
-//                       ],
-//                     ),
-//                   )),
-//
-//
-//                   if (persons.isEmpty)
-//                     const Text('No person details available',
-//                         style: TextStyle(color: Colors.grey)),
-//
-//                   const Divider(),
-//
-//                   _infoRow('🏷️ Designation', designation),
-//                   _infoRow('🔗 Reference', reference),
-//                 ],
-//               ),
-//             ),
-//           ),
-//
-//           actions: [
-//             TextButton(
-//               child: const Text('Close', style: TextStyle(color: Colors.indigo)),
-//               onPressed: () => Navigator.pop(context),
-//             ),
-//           ],
-//         );
-//       },
-//     );
-//   }
-//
-//   Widget _infoRow(String title, String value) {
-//     return Padding(
-//       padding: const EdgeInsets.symmetric(vertical: 4),
-//       child: Row(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           SizedBox(
-//             width: 140,
-//             child: Text(
-//               title,
-//               style: const TextStyle(fontWeight: FontWeight.bold),
-//             ),
-//           ),
-//           Expanded(child: Text(value)),
-//         ],
-//       ),
-//     );
-//   }
-//
-//
-// }
-
-
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../Provider/FollowUp/FollowupProvider.dart';
+import '../../compoents/premium_header.dart';
+import '../../compoents/premium_card.dart';
+import '../../compoents/app_theme.dart';
+import 'package:iconsax/iconsax.dart';
+import '../../compoents/responsive_helper.dart';
 import '../../model/FollowUpModel.dart';
 
 class FollowUpScreen extends StatefulWidget {
@@ -643,7 +220,18 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Follow-ups', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _refreshFollowUps,
+            icon: const Icon(Iconsax.refresh),
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
       body: Consumer<FollowUpProvider>(
         builder: (context, provider, child) {
           final filteredFollowUps = _getFilteredFollowUps(provider);
@@ -655,156 +243,54 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
           final paginatedList = filteredFollowUps.sublist(startIndex, endIndex);
           final statusTypes = _getStatusTypes(provider);
 
-          return NestedScrollView(
-            controller: _scrollController,
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  pinned: true,
-                  floating: true,
-                  expandedHeight: 160,
-                  elevation: 4,
-                  backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
-                  surfaceTintColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                  actions: [
-                    IconButton(
-                      onPressed: _refreshFollowUps,
-                      icon: const Icon(Icons.refresh_rounded),
-                      tooltip: 'Refresh',
-                    ),
-                  ],
-                  title: Text(
-                    'Follow-ups',
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                  centerTitle: true,
-                  bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(140),
-                    child: Container(
-                      color: isDarkMode ? Colors.grey[900] : Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Column(
-                          children: [
-                            // Search Bar
-                            Container(
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 16),
-                                  Icon(
-                                    Icons.search_rounded,
-                                    color: Colors.grey[500],
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _searchController,
-                                      onChanged: (value) {
-                                        setState(() => _searchQuery = value);
-                                      },
-                                      style: const TextStyle(fontSize: 15),
-                                      decoration: InputDecoration(
-                                        hintText: 'Search follow-ups...',
-                                        hintStyle: TextStyle(
-                                          color: Colors.grey[500],
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_searchQuery.isNotEmpty)
-                                    IconButton(
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _searchQuery = '');
-                                      },
-                                      icon: Icon(
-                                        Icons.close_rounded,
-                                        color: Colors.grey[500],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Status Filter Chips
-                            SizedBox(
-                              height: 40,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                children: statusTypes.map((status) {
-                                  final isSelected = _selectedFilter == status;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: FilterChip(
-                                      label: Text(
-                                        status,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      selected: isSelected,
-                                      onSelected: (selected) {
-                                        setState(() => _selectedFilter = selected ? status : 'All');
-                                      },
-                                      backgroundColor: isDarkMode
-                                          ? Colors.grey[800]
-                                          : Colors.grey[100],
-                                      selectedColor: theme.colorScheme.primary
-                                          .withOpacity(0.2),
-                                      checkmarkColor: theme.colorScheme.primary,
-                                      labelStyle: TextStyle(
-                                        color: isSelected
-                                            ? theme.colorScheme.primary
-                                            : Colors.grey[700],
-                                        fontWeight:
-                                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                        side: BorderSide(
-                                          color: isSelected
-                                              ? theme.colorScheme.primary
-                                              : Colors.transparent,
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
+          return Column(
+            children: [
+              PremiumActionHeader(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                onAddTap: () {}, // Not used here
+                showAdd: false,
+                hintText: "Search follow-ups...",
+              ),
+              if (provider.followUps.isNotEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: statusTypes.map((status) {
+                      final isSelected = _selectedFilter == status;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(status),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _selectedFilter = status);
+                          },
+                          backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                          selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                          labelStyle: TextStyle(
+                            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade600,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          side: BorderSide.none,
+                          showCheckmark: false,
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
                 ),
-              ];
-            },
-            body: provider.isLoading
-                ? _buildShimmerLoading()
-                : provider.errorMessage != null
-                ? _buildErrorState(provider.errorMessage!, theme, isDarkMode)
-                : filteredFollowUps.isEmpty
-                ? _buildEmptyState(context, _searchQuery, _searchController)
-                : _buildFollowUpList(context, paginatedList, totalPages, theme, isDarkMode),
+              Expanded(
+                child: provider.isLoading
+                    ? _buildShimmerLoading()
+                    : provider.errorMessage != null
+                    ? _buildErrorState(provider.errorMessage!, theme, isDarkMode)
+                    : filteredFollowUps.isEmpty
+                    ? _buildEmptyState(context, _searchQuery, _searchController)
+                    : _buildFollowUpList(context, paginatedList, totalPages, theme, isDarkMode),
+              ),
+            ],
           );
         },
       ),
@@ -956,14 +442,11 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               final statusColor = _getStatusColor(status);
               final statusIcon = _getStatusIcon(status);
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Material(
-                  color: isDarkMode ? Colors.grey[800] : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  elevation: 2,
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: PremiumCard(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -977,7 +460,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                                 companyName,
                                 style: const TextStyle(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.bold,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -1009,7 +492,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                                     status,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.bold,
                                       color: statusColor,
                                     ),
                                   ),
@@ -1018,116 +501,89 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
 
                         // Follow-up details
                         _buildDetailRow(
-                          icon: Icons.engineering_outlined,
-                          label: 'Staff',
+                          icon: Iconsax.user,
+                          label: 'Assigned Staff',
                           value: staffName,
-                          theme: theme,
                           isDarkMode: isDarkMode,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
                         _buildDetailRow(
-                          icon: Icons.phone_outlined,
-                          label: 'Phone',
+                          icon: Iconsax.call,
+                          label: 'Contact Number',
                           value: phoneNumber,
-                          theme: theme,
                           isDarkMode: isDarkMode,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
                         Row(
                           children: [
                             Expanded(
                               child: _buildDetailRow(
-                                icon: Icons.calendar_today_outlined,
+                                icon: Iconsax.calendar_1,
                                 label: 'Date',
                                 value: date,
-                                theme: theme,
                                 isDarkMode: isDarkMode,
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: _buildDetailRow(
-                                icon: Icons.access_time_outlined,
+                                icon: Iconsax.clock,
                                 label: 'Time',
                                 value: time,
-                                theme: theme,
                                 isDarkMode: isDarkMode,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
 
                         if (item.action != null && item.action!.isNotEmpty) ...[
+                          const SizedBox(height: 12),
                           _buildDetailRow(
-                            icon: Icons.description_outlined,
-                            label: 'Action',
+                            icon: Iconsax.note_text,
+                            label: 'Next Action',
                             value: item.action!,
-                            theme: theme,
                             isDarkMode: isDarkMode,
                           ),
-                          const SizedBox(height: 8),
                         ],
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
 
                         // Action buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            IconButton(
-                              onPressed: () {
-                                _showDetailsDialog(context, item);
-                              },
-                              icon: Icon(
-                                Icons.visibility_rounded,
-                                color: theme.colorScheme.primary,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                                padding: const EdgeInsets.all(8),
-                              ),
+                            _buildActionButton(
+                              icon: Iconsax.eye,
+                              color: AppTheme.primaryColor,
+                              onTap: () => _showDetailsDialog(context, item),
                               tooltip: 'View Details',
                             ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () {
-                                _showUpdateDialog(context, item, provider);
-                              },
-                              icon: Icon(
-                                Icons.edit_rounded,
-                                color: theme.colorScheme.primary,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                                padding: const EdgeInsets.all(8),
-                              ),
+                            const SizedBox(width: 12),
+                            _buildActionButton(
+                              icon: Iconsax.edit_2,
+                              color: AppTheme.primaryColor,
+                              onTap: () => _showUpdateDialog(context, item, provider),
                               tooltip: 'Edit Follow-up',
                             ),
-                            const SizedBox(width: 8),
-                            if (userRole == 'admin')
-                              IconButton(
-                                onPressed: () => _showDeleteDialog(
+                            if (userRole == 'admin') ...[
+                              const SizedBox(width: 12),
+                              _buildActionButton(
+                                icon: Iconsax.trash,
+                                color: Colors.red,
+                                onTap: () => _showDeleteDialog(
                                   context,
                                   item.id,
                                   companyName,
                                 ),
-                                icon: Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: theme.colorScheme.error,
-                                ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: theme.colorScheme.error.withOpacity(0.1),
-                                  padding: const EdgeInsets.all(8),
-                                ),
-                                tooltip: 'Delete Follow-up',
+                                tooltip: 'Delete',
                               ),
+                            ],
                           ],
                         ),
                       ],
@@ -1138,7 +594,6 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             },
           ),
         ),
-
         // Pagination
         if (totalPages > 1)
           Container(
@@ -1183,8 +638,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                     setState(() => _currentPage++);
                   }
                       : null,
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: const Text('Next'),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16), label: const Text('Next'),
                 ),
               ],
             ),
@@ -1197,17 +651,12 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     required IconData icon,
     required String label,
     required String value,
-    required ThemeData theme,
     required bool isDarkMode,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Colors.grey[500],
-        ),
+        Icon(icon, size: 16, color: Colors.grey.shade500),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1215,17 +664,14 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDarkMode ? Colors.white : Colors.grey[800],
+                  color: isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1236,12 +682,25 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
   }
 
-  // void _showUpdateDialog(BuildContext context, FollowUpData item, FollowUpProvider provider) {
-  //   final companyController = TextEditingController(text: item.companyName ?? '');
-  //   final phoneController = TextEditingController(
-  //     text: (item.person?.persons.isNotEmpty ?? false)
-  //         ? item.person!.persons.first.phoneNumber ?? ''
-  //         : '',
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    required String tooltip,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 20),
+        onPressed: onTap,
+        tooltip: tooltip,
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      ),
+    );
+  }
   //   );
   //   final dateController = TextEditingController(
   //     text: item.followDates.isNotEmpty

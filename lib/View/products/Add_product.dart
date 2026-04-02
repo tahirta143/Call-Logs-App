@@ -131,10 +131,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:infinity/compoents/AppTextfield.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../../Provider/product/product_provider.dart';
+import '../../compoents/AppTextfield.dart';
+import '../../compoents/responsive_helper.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -233,20 +234,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
           price: _priceController.text.trim(),
           isEnable: _isEnable,
           imageFile: _imageFile!,
-          // description: _descriptionController.text.trim(),
-          // category: _categoryController.text.trim(),
         );
 
         setState(() {
           _isUploading = false;
         });
 
-       // if (success) {
+        if (mounted) {
           // Show success dialog
           await showDialog(
             context: context,
             barrierDismissible: false,
             builder: (context) => AlertDialog(
+              backgroundColor: Theme.of(context).cardColor,
               icon: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -284,12 +284,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     Navigator.pop(context); // Close dialog
                     _clearForm(); // Clear form for next product
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('Add Another'),
                 ),
               ],
             ),
           );
-       // }
+        }
       } catch (e) {
         setState(() {
           _isUploading = false;
@@ -305,15 +309,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             pinned: true,
             floating: true,
-            expandedHeight: 120,
+            expandedHeight: context.sh(0.1),
             elevation: 0,
-            backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+            backgroundColor: theme.appBarTheme.backgroundColor,
             surfaceTintColor: isDarkMode ? Colors.grey[800] : Colors.white,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -322,34 +326,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
             actions: [
               IconButton(
                 onPressed: _clearForm,
-                icon: const Icon(Icons.delete_outline_rounded),
+                icon: const Icon(Icons.refresh_rounded),
                 tooltip: 'Clear Form',
               ),
             ],
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              titlePadding: const EdgeInsets.only(bottom: 16),
-              title: Text(
-                'Add New Product',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      theme.colorScheme.primary.withOpacity(0.1),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
+            title: Text(
+              'Add New Product',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
               ),
             ),
+            centerTitle: true,
           ),
           SliverPadding(
             padding: const EdgeInsets.all(20),
@@ -362,7 +351,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!,
                   ),
                 ),
-                color: isDarkMode ? Colors.grey[800] : Colors.white,
+                color: theme.cardColor,
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Form(
@@ -392,26 +381,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         : Colors.grey[800],
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                if (_imageFile != null)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      'Selected',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -419,6 +388,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               onTap: () {
                                 showModalBottomSheet(
                                   context: context,
+                                  backgroundColor: theme.cardColor,
                                   shape: const RoundedRectangleBorder(
                                     borderRadius: BorderRadius.vertical(
                                       top: Radius.circular(20),
@@ -460,6 +430,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                           _takePhoto();
                                         },
                                       ),
+                                      const SizedBox(height: 20),
                                     ],
                                   ),
                                 );
@@ -469,12 +440,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: isDarkMode
-                                      ? Colors.grey[700]
+                                      ? Colors.grey[900]
                                       : Colors.grey[100],
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isDarkMode
-                                        ? Colors.grey[600]!
+                                        ? Colors.grey[800]!
                                         : Colors.grey[300]!,
                                     width: 2,
                                     style: _imageFile == null
@@ -575,34 +546,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             AppTextField(
                               controller: _nameController,
                               label: 'Product Name',
-                              //prefixIcon: Icons.shopping_bag_outlined,
                               validator: (value) => value!.isEmpty
                                   ? 'Please enter product name'
                                   : null,
-                            //  maxLength: 100,
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: AppTextField(
-                                    controller: _priceController,
-                                    label: 'Price',
-
-                                    keyboardType: TextInputType.number,
-                                    validator: (value) {
-                                      if (value!.isEmpty) {
-                                        return 'Please enter price';
-                                      }
-                                      final price = double.tryParse(value);
-                                      if (price == null || price <= 0) {
-                                        return 'Please enter valid price';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
+                            AppTextField(
+                              controller: _priceController,
+                              label: 'Price',
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value!.isEmpty) {
+                                  return 'Please enter price';
+                                }
+                                final price = double.tryParse(value);
+                                if (price == null || price <= 0) {
+                                  return 'Please enter valid price';
+                                }
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 24),
                             // Status Switch
@@ -613,9 +575,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isDarkMode
-                                    ? Colors.grey[700]
-                                    : Colors.grey[100],
+                                    ? Colors.grey[900]
+                                    : Colors.grey[50],
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDarkMode
+                                      ? Colors.grey[800]!
+                                      : Colors.grey[200]!,
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -645,8 +612,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         ),
                                         Text(
                                           _isEnable
-                                              ? 'Product is visible to customers'
-                                              : 'Product is hidden from customers',
+                                              ? 'Active and visible'
+                                              : 'Hidden from catalog',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[500],
@@ -668,76 +635,45 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                         const SizedBox(height: 40),
                         // Submit Button
-                        Column(
-                          children: [
-                            if (_isUploading)
-                              LinearProgressIndicator(
-                                backgroundColor: Colors.transparent,
-                                color: theme.colorScheme.primary,
-                                minHeight: 2,
-                              )
-                            else
-                              const SizedBox(height: 2),
-                            const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => Navigator.pop(context),
-                                    icon: const Icon(Icons.arrow_back_rounded),
-                                    label: const Text('Cancel'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _isUploading ? null : _submitForm,
-                                    icon: _isUploading
-                                        ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                        : const Icon(Icons.add_rounded),
-                                    label: Text(
-                                      _isUploading
-                                          ? 'Adding...'
-                                          : 'Add Product',
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: theme.colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 4,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            Text(
-                              'By adding this product, you agree to our terms and conditions.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[500],
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _isUploading ? null : _submitForm,
+                            icon: _isUploading
+                                ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
+                            )
+                                : const Icon(Icons.add_rounded),
+                            label: Text(
+                              _isUploading
+                                  ? 'Adding...'
+                                  : 'Add Product',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
-                          ],
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Ensure all details are accurate before adding.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                          ),
                         ),
                       ],
                     ),
@@ -757,4 +693,4 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _priceController.dispose();
     super.dispose();
   }
-}
+}

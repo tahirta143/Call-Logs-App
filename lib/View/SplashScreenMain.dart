@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:infinity/View/splashScreen.dart';
+import '../compoents/responsive_helper.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -37,7 +38,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           Expanded(
@@ -69,7 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: currentIndex == index ? 12 : 8,
                 height: currentIndex == index ? 12 : 8,
                 decoration: BoxDecoration(
-                  color: currentIndex == index ? Colors.blue : Colors.grey,
+                  color: currentIndex == index ? theme.colorScheme.primary : (isDark ? Colors.grey[700] : Colors.grey[300]),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -88,13 +93,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required String subtitle,
     required bool showButton,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Image.asset(
           image,
           width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.45,
+          height: context.sh(0.45),
           fit: BoxFit.contain,
         ),
 
@@ -106,9 +114,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
+            style: TextStyle(
+              fontSize: context.sw(0.06),
               fontWeight: FontWeight.bold,
+              color: theme.textTheme.titleLarge?.color,
             ),
           ),
 
@@ -119,7 +128,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            style: TextStyle(
+              fontSize: context.sw(0.04),
+              color: isDark ? Colors.white70 : Colors.grey[600],
+            ),
           ),
 
         const SizedBox(height: 30),
@@ -131,16 +143,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Navigator.pushReplacement(context,MaterialPageRoute(builder: (context)=>Splashscreen()));
             },
             style: ElevatedButton.styleFrom(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-              backgroundColor: Colors.blue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.sw(0.1),
+                vertical: context.sh(0.015),
               ),
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
             ),
-            child: const Text(
+            child: Text(
               "Get Started",
-              style: TextStyle(fontSize: 16, color: Colors.white),
+              style: TextStyle(
+                fontSize: context.sw(0.045),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
       ],

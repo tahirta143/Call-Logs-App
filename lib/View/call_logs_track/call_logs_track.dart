@@ -1,162 +1,15 @@
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// import '../../Provider/callLogsProvider/callLogsProvider.dart';
-//
-// class CallLogsScreen extends StatefulWidget {
-//   const CallLogsScreen({Key? key}) : super(key: key);
-//
-//   @override
-//   State<CallLogsScreen> createState() => _CallLogsScreenState();
-// }
-//
-// class _CallLogsScreenState extends State<CallLogsScreen> {
-//   @override
-//   void initState() {
-//     super.initState();
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       Provider.of<CallLogsProvider>(context, listen: false).fetchCallLogs();
-//     });
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final provider = Provider.of<CallLogsProvider>(context);
-//
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Center(child: const Text('Meeting Call Logs Track',
-//             style: TextStyle(
-//               color: Colors.white,
-//               fontWeight: FontWeight.bold,
-//               fontSize: 22,
-//               letterSpacing: 1.2,
-//             )),
-//         ),
-//         centerTitle: true,
-//         elevation: 6,
-//         flexibleSpace: Container(
-//           decoration: const BoxDecoration(
-//             gradient: LinearGradient(
-//               colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
-//               begin: Alignment.topLeft,
-//               end: Alignment.bottomRight,
-//             ),
-//           ),
-//         ),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//
-//       body: provider.isLoading
-//           ? const Center(child: CircularProgressIndicator())
-//           : provider.callLogs.isEmpty
-//           ? const Center(child: Text("No call logs found."))
-//           : ListView.builder(
-//         padding: const EdgeInsets.all(8),
-//         itemCount: provider.callLogs.length,
-//         itemBuilder: (context, index) {
-//           final log = provider.callLogs[index];
-//
-//           return Card(
-//             margin: const EdgeInsets.symmetric(vertical: 6),
-//             shape: RoundedRectangleBorder(
-//               borderRadius: BorderRadius.circular(12),
-//             ),
-//             elevation: 3,
-//             child: ListTile(
-//               contentPadding: const EdgeInsets.all(10),
-//               title: Text(
-//                 log.customerName,
-//                 style: const TextStyle(
-//                   fontWeight: FontWeight.bold,
-//                   fontSize: 16,
-//                 ),
-//               ),
-//               subtitle: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   Text("📞 ${log.phoneNumber}"),
-//                   Text("👩‍💼 ${log.staffName}"),
-//                   Text("🕒 ${log.date} - ${log.time}"),
-//                   Text("📍 ${log.location}"),
-//                 ],
-//               ),
-//               trailing: IconButton(
-//                 icon: const Icon(Icons.delete, color: Colors.red),
-//                 onPressed: () async {
-//                   final confirm = await showDialog<bool>(
-//                     context: context,
-//                     builder: (context) => AlertDialog(
-//                       title: const Text("Delete Call Log"),
-//                       content: const Text(
-//                           "Are you sure you want to delete this call log?"),
-//                       actions: [
-//                         TextButton(
-//                           onPressed: () =>
-//                               Navigator.pop(context, false),
-//                           child: const Text("Cancel"),
-//                         ),
-//                         TextButton(
-//                           onPressed: () =>
-//                               Navigator.pop(context, true),
-//                           child: const Text(
-//                             "Delete",
-//                             style: TextStyle(color: Colors.red),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   );
-//
-//                   if (confirm == true) {
-//                     final body = {
-//                       "customerName": log.customerName,
-//                       "phoneNumber": log.phoneNumber,
-//                       "staffName": log.staffName,
-//                       "date": log.date,
-//                       "time": log.time,
-//                       "mode": log.mode,
-//                       "location": log.location,
-//                     };
-//
-//                     final success = await provider.deleteCallLog(
-//                       id: log.id,
-//                       body: body,
-//                     );
-//
-//                     if (success) {
-//                       ScaffoldMessenger.of(context).showSnackBar(
-//                         const SnackBar(
-//                           content:
-//                           Text("✅ Call log deleted successfully"),
-//                         ),
-//                       );
-//                     } else {
-//                       ScaffoldMessenger.of(context).showSnackBar(
-//                         const SnackBar(
-//                           content:
-//                           Text("❌ Failed to delete call log"),
-//                         ),
-//                       );
-//                     }
-//                   }
-//                 },
-//               ),
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }
-
-
-
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:provider/provider.dart';
+
 import '../../Provider/callLogsProvider/callLogsProvider.dart';
+import '../../compoents/premium_header.dart';
+import '../../compoents/premium_card.dart';
+import '../../compoents/app_theme.dart';
+import 'package:iconsax/iconsax.dart';
+import '../../compoents/responsive_helper.dart';
 
 class CallLogsScreen extends StatefulWidget {
   const CallLogsScreen({Key? key}) : super(key: key);
@@ -242,6 +95,7 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         icon: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -381,7 +235,18 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.grey[900] : Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Call Logs', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _refreshCallLogs,
+            icon: const Icon(Iconsax.refresh),
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
       body: Consumer<CallLogsProvider>(
         builder: (context, provider, child) {
           final filteredCallLogs = _getFilteredCallLogs(provider);
@@ -392,156 +257,54 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
               : startIndex + _itemsPerPage;
           final paginatedList = filteredCallLogs.sublist(startIndex, endIndex);
 
-          return NestedScrollView(
-            controller: _scrollController,
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                SliverAppBar(
-                  pinned: true,
-                  floating: true,
-                  expandedHeight: 160,
-                  elevation: 4,
-                  backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
-                  surfaceTintColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                  actions: [
-                    IconButton(
-                      onPressed: _refreshCallLogs,
-                      icon: const Icon(Icons.refresh_rounded),
-                      tooltip: 'Refresh',
-                    ),
-                  ],
-                  title: Text(
-                    'Call Logs',
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                  centerTitle: true,
-                  bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(140),
-                    child: Container(
-                      color: isDarkMode ? Colors.grey[900] : Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Column(
-                          children: [
-                            // Search Bar
-                            Container(
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 16),
-                                  Icon(
-                                    Icons.search_rounded,
-                                    color: Colors.grey[500],
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _searchController,
-                                      onChanged: (value) {
-                                        setState(() => _searchQuery = value);
-                                      },
-                                      style: const TextStyle(fontSize: 15),
-                                      decoration: InputDecoration(
-                                        hintText: 'Search call logs...',
-                                        hintStyle: TextStyle(
-                                          color: Colors.grey[500],
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_searchQuery.isNotEmpty)
-                                    IconButton(
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _searchQuery = '');
-                                      },
-                                      icon: Icon(
-                                        Icons.close_rounded,
-                                        color: Colors.grey[500],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Mode Filter Chips
-                            SizedBox(
-                              height: 40,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                children: _modes.map((mode) {
-                                  final isSelected = _selectedMode == mode;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: FilterChip(
-                                      label: Text(
-                                        mode,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      selected: isSelected,
-                                      onSelected: (selected) {
-                                        setState(() => _selectedMode = selected ? mode : 'All');
-                                      },
-                                      backgroundColor: isDarkMode
-                                          ? Colors.grey[800]
-                                          : Colors.grey[100],
-                                      selectedColor: theme.colorScheme.primary
-                                          .withOpacity(0.2),
-                                      checkmarkColor: theme.colorScheme.primary,
-                                      labelStyle: TextStyle(
-                                        color: isSelected
-                                            ? theme.colorScheme.primary
-                                            : Colors.grey[700],
-                                        fontWeight:
-                                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                        side: BorderSide(
-                                          color: isSelected
-                                              ? theme.colorScheme.primary
-                                              : Colors.transparent,
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
+          return Column(
+            children: [
+              PremiumActionHeader(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                onAddTap: () {},
+                showAdd: false,
+                hintText: "Search call logs...",
+              ),
+              if (provider.callLogs.isNotEmpty)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: _modes.map((mode) {
+                      final isSelected = _selectedMode == mode;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(mode),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _selectedMode = mode);
+                          },
+                          backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                          selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                          labelStyle: TextStyle(
+                            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade600,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          side: BorderSide.none,
+                          showCheckmark: false,
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
                 ),
-              ];
-            },
-            body: provider.isLoading
-                ? _buildShimmerLoading()
-                : provider.callLogs.isEmpty && _searchQuery.isEmpty
-                ? _buildEmptyState(context, _searchQuery, _searchController)
-                : filteredCallLogs.isEmpty
-                ? _buildNoResultsState()
-                : _buildCallLogList(context, paginatedList, totalPages, theme, isDarkMode),
+              Expanded(
+                child: provider.isLoading
+                    ? _buildShimmerLoading()
+                    : provider.callLogs.isEmpty && _searchQuery.isEmpty
+                    ? _buildEmptyState(context, _searchQuery, _searchController)
+                    : filteredCallLogs.isEmpty
+                    ? _buildNoResultsState()
+                    : _buildCallLogList(context, paginatedList, totalPages, theme, isDarkMode),
+              ),
+            ],
           );
         },
       ),
@@ -671,148 +434,140 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
               final modeColor = _getModeColor(log.mode ?? '');
               final modeIcon = _getModeIcon(log.mode ?? '');
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Material(
-                  color: isDarkMode ? Colors.grey[800] : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  elevation: 2,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header with customer name and mode
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  log.customerName ?? 'Unknown',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: PremiumCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header with customer name and mode
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                log.customerName ?? 'Unknown',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: modeColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: modeColor.withOpacity(0.3),
+                                  width: 1,
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: modeColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: modeColor.withOpacity(0.3),
-                                    width: 1,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    modeIcon,
+                                    size: 14,
+                                    color: modeColor,
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      modeIcon,
-                                      size: 14,
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    log.mode ?? 'Unknown',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
                                       color: modeColor,
                                     ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      log.mode ?? 'Unknown',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: modeColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
-                          // Phone Number
-                          _buildDetailRow(
-                            icon: Icons.phone_rounded,
-                            label: 'Phone Number',
-                            value: log.phoneNumber ?? 'N/A',
-                            theme: theme,
-                            isDarkMode: isDarkMode,
-                          ),
-                          const SizedBox(height: 8),
+                        // Phone Number
+                        _buildDetailRow(
+                          icon: Iconsax.call,
+                          label: 'Phone Number',
+                          value: log.phoneNumber ?? 'N/A',
+                          isDarkMode: isDarkMode,
+                        ),
+                        const SizedBox(height: 12),
 
-                          // Staff Name
-                          _buildDetailRow(
-                            icon: Icons.person_rounded,
-                            label: 'Staff',
-                            value: log.staffName ?? 'N/A',
-                            theme: theme,
-                            isDarkMode: isDarkMode,
-                          ),
-                          const SizedBox(height: 8),
+                        // Staff Name
+                        _buildDetailRow(
+                          icon: Iconsax.user,
+                          label: 'Assigned Staff',
+                          value: log.staffName ?? 'N/A',
+                          isDarkMode: isDarkMode,
+                        ),
+                        const SizedBox(height: 12),
 
-                          // Date and Time in row
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDetailRow(
-                                  icon: Icons.calendar_today_rounded,
-                                  label: 'Date',
-                                  value: _formatDate(log.date ?? ''),
-                                  theme: theme,
-                                  isDarkMode: isDarkMode,
-                                ),
+                        // Date and Time in row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDetailRow(
+                                icon: Iconsax.calendar_1,
+                                label: 'Date',
+                                value: _formatDate(log.date ?? ''),
+                                isDarkMode: isDarkMode,
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _buildDetailRow(
-                                  icon: Icons.access_time_rounded,
-                                  label: 'Time',
-                                  value: log.time ?? 'N/A',
-                                  theme: theme,
-                                  isDarkMode: isDarkMode,
-                                ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildDetailRow(
+                                icon: Iconsax.clock,
+                                label: 'Time',
+                                value: log.time ?? 'N/A',
+                                isDarkMode: isDarkMode,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
 
-                          // Location
-                          _buildDetailRow(
-                            icon: Icons.location_on_rounded,
-                            label: 'Location',
-                            value: log.location ?? 'N/A',
-                            theme: theme,
-                            isDarkMode: isDarkMode,
-                          ),
-                          const SizedBox(height: 16),
+                        // Location
+                        _buildDetailRow(
+                          icon: Iconsax.location,
+                          label: 'Location',
+                          value: log.location ?? 'N/A',
+                          isDarkMode: isDarkMode,
+                        ),
+                        const SizedBox(height: 20),
 
-                          // Delete Button
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
+                        // Delete Button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
                                 onPressed: () => _showDeleteDialog(context, log),
                                 icon: Icon(
-                                  Icons.delete_outline_rounded,
+                                  Iconsax.trash,
                                   color: theme.colorScheme.error,
-                                ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: theme.colorScheme.error.withOpacity(0.1),
-                                  padding: const EdgeInsets.all(8),
+                                  size: 20,
                                 ),
                                 tooltip: 'Delete Call Log',
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -865,8 +620,7 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
                     setState(() => _currentPage++);
                   }
                       : null,
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: const Text('Next'),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16), label: const Text('Next'),
                 ),
               ],
             ),
@@ -879,7 +633,6 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
     required IconData icon,
     required String label,
     required String value,
-    required ThemeData theme,
     required bool isDarkMode,
   }) {
     return Row(
@@ -907,7 +660,7 @@ class _CallLogsScreenState extends State<CallLogsScreen> {
                 value,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDarkMode ? Colors.white : Colors.grey[800],
+                  color: isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w500,
                 ),
               ),

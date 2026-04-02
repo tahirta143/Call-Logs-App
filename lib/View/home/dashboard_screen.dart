@@ -615,6 +615,7 @@
 //
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:infinity/Provider/theme_provider.dart';
 import 'package:infinity/View/Meeting_calender/AllMeeting.dart';
 import 'package:infinity/View/home/weekly_charts.dart';
 import 'package:provider/provider.dart';
@@ -625,17 +626,14 @@ import 'package:shimmer/shimmer.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
 import '../../Provider/dashboard_provider.dart';
-import '../Activity_Track/Activity_Track_Screen.dart';
-import '../AssignScreen/AssignCustomer.dart';
-import '../Auths/Login_screen.dart';
-import '../Customer/customer_list.dart';
-import '../Meeting_calender/MeetingCalender.dart';
-import '../SuccessClientScreen/successClientProvider.dart';
-import '../call_logs_track/call_logs_track.dart';
-import '../followUpScreen/FollowUpScreen.dart';
+import '../../compoents/responsive_helper.dart';
+// import '../../compoents/premium_header.dart';
+import '../../compoents/premium_card.dart';
+import 'package:iconsax/iconsax.dart';
 import '../monthly chats.dart';
-import '../products/product_screen.dart';
 import '../staff/staffListScreen.dart';
+import '../products/product_screen.dart';
+import '../Customer/customer_list.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -675,261 +673,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final provider = Provider.of<DashBoardProvider>(context);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          "Dashboard",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            letterSpacing: 1.2,
-          ),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => provider.loadAllDashboardData(),
-          ),
-        ],
-      ),
-
-      drawer: _buildDrawer(theme),
-
-      body: SafeArea(
-        child: provider.isLoading
-            ? _buildShimmerLoading()
-            : RefreshIndicator(
-          onRefresh: () async {
-            await provider.loadAllDashboardData();
-          },
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Header
-                _buildWelcomeHeader(provider),
-
-                // Statistics Cards
-                _buildStatisticsCards(provider),
-
-                // Performance Section
-                _buildPerformanceSection(provider),
-
-                // Follow-up Calendar
-                _buildCalendarSection(provider),
-
-                // Charts Section
-                _buildChartsSection(provider),
-
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer(ThemeData theme) {
-    return Drawer(
-      width: MediaQuery.of(context).size.width * 0.78,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.grey.shade50,
-              Colors.grey.shade100,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            // Drawer Header
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: FutureBuilder<String?>(
-                future: _getUsername(),
-                builder: (context, snapshot) {
-                  final username = snapshot.data ?? "User";
-                  return Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Colors.white.withOpacity(0.9),
-                          child: const Icon(
-                            Iconsax.profile_circle,
-                            color: Color(0xFF5B86E5),
-                            size: 40,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Welcome,',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          username,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Menu Items
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+    return provider.isLoading
+        ? _buildShimmerLoading()
+        : RefreshIndicator(
+            onRefresh: () async {
+              await provider.loadAllDashboardData();
+            },
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDrawerItem(
-                    icon: Iconsax.home,
-                    label: 'Dashboard',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  _buildDrawerItem(
-                    icon: Iconsax.calendar_2,
-                    label: 'All Meeting Details',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const NoDateMeetingScreen()),
-                    ),
-                  ),
-                  _buildDrawerItem(
-                    icon: Iconsax.refresh_circle,
-                    label: 'Follow Up',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const FollowUpScreen()),
-                    ),
-                  ),
-                  if (userRole == 'admin')
-                    _buildDrawerItem(
-                      icon: Iconsax.user_add,
-                      label: 'Assign To',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                            const UnassignCustomerScreen()),
-                      ),
-                    ),
-                  if (userRole == 'admin')
-                    _buildDrawerItem(
-                      icon: Iconsax.call,
-                      label: 'Call Track',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const CallLogsScreen()),
-                      ),
-                    ),
-                  _buildDrawerItem(
-                    icon: Iconsax.like_1,
-                    label: 'Success Client',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const SuccessClientScreen()),
-                    ),
-                  ),
-                  _buildDrawerItem(
-                    icon: Iconsax.calendar_1,
-                    label: 'Calendar',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                          const UpcomingMeetingsScreen()),
-                    ),
-                  ),
-                  if (userRole == 'admin')
-                    _buildDrawerItem(
-                      icon: Iconsax.activity,
-                      label: 'Activity Track',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ActivityTrackScreen()),
-                      ),
-                    ),
-                  const Divider(thickness: 1),
-                  _buildDrawerItem(
-                    icon: Iconsax.logout,
-                    label: 'Logout',
-                    color: Colors.red,
-                    onTap: _confirmLogout,
-                  ),
+                  // Welcome Header
+                  _buildWelcomeHeader(provider),
+
+                  // Statistics Cards
+                  _buildStatisticsCards(provider),
+
+                  // Performance Section
+                  _buildPerformanceSection(provider),
+
+                  // Follow-up Calendar
+                  _buildCalendarSection(provider),
+
+                  // Charts Section
+                  _buildChartsSection(provider),
+
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? const Color(0xFF5B86E5)),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: color ?? Colors.black87,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    );
+          );
   }
 
   Widget _buildShimmerLoading() {
@@ -957,16 +731,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(
             children: List.generate(
                 2,
-                    (index) => Expanded(
-                  child: Container(
-                    height: 120,
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                )),
+                (index) => Expanded(
+                      child: Container(
+                        height: 120,
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    )),
           ),
         ),
         const SizedBox(height: 20),
@@ -988,6 +762,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildWelcomeHeader(DashBoardProvider provider) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -1059,6 +834,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatisticsCards(DashBoardProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final cards = [
       {
         'icon': Iconsax.profile_2user,
@@ -1112,12 +890,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.4, // Increased from 1.3 to give more height
+          childAspectRatio: 1.4,
         ),
         itemCount: cards.length,
         itemBuilder: (context, index) {
           final card = cards[index];
-          return GestureDetector(
+          return PremiumCard(
             onTap: card['onTap'] != null
                 ? () => card['onTap']!
                 : () {
@@ -1131,73 +909,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               }
             },
-            child: Container(
-              constraints: const BoxConstraints(
-                minHeight: 120,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(12), // Reduced padding
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40, // Reduced size
-                    height: 40, // Reduced size
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          (card['color'] as Color).withOpacity(0.2),
-                          (card['color'] as Color).withOpacity(0.1),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        (card['color'] as Color).withOpacity(0.2),
+                        (card['color'] as Color).withOpacity(0.1),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: Icon(
-                      card['icon'] as IconData,
-                      color: card['color'] as Color,
-                      size: 20, // Reduced size
-                    ),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 8), // Reduced spacing
-                  Flexible(
-                    child: Text(
-                      card['count'] as String,
-                      style: const TextStyle(
-                        fontSize: 20, // Reduced font size
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  child: Icon(
+                    card['icon'] as IconData,
+                    color: card['color'] as Color,
+                    size: 20,
                   ),
-                  const SizedBox(height: 4), // Reduced spacing
-                  Flexible(
-                    child: Text(
-                      card['title'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: Text(
+                    card['count'] as String,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 4),
+                Flexible(
+                  child: Text(
+                    card['title'] as String,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -1206,6 +968,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPerformanceSection(DashBoardProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     // Helper function to safely parse any value to double
     double _safeParseToDouble(dynamic value) {
       if (value == null) return 0.0;
@@ -1254,32 +1019,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
+      child: PremiumCard(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Iconsax.chart_2, color: Color(0xFF5B86E5), size: 24),
+                Icon(Iconsax.chart_2, color: theme.colorScheme.primary, size: 24),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Performance Metrics',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
                 const Spacer(),
@@ -1330,9 +1084,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 2),
                             Text(
                               '${value.toStringAsFixed(0)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
                               ),
                             ),
                             if (metric['label'] != 'Meetings')
@@ -1367,113 +1122,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCalendarSection(DashBoardProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
+      child: PremiumCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Iconsax.calendar_1,
+                    color: theme.colorScheme.primary, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Follow-up Calendar',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${provider.totalMeetings} Meetings',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
+            CalendarWidget(),
           ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Iconsax.calendar_1,
-                      color: Color(0xFF5B86E5), size: 24),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Follow-up Calendar',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${provider.totalMeetings} Meetings',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              CalendarWidget(),
-            ],
-          ),
         ),
       ),
     );
   }
 
   Widget _buildChartsSection(DashBoardProvider provider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Monthly Trends
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
+          PremiumCard(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Iconsax.chart_success,
-                        color: Color(0xFF5B86E5), size: 24),
+                    Icon(Iconsax.chart_success,
+                        color: theme.colorScheme.primary, size: 24),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Monthly Trends',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                     const Spacer(),
@@ -1520,18 +1257,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
 
           // Weekly Volume
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
+          PremiumCard(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1541,12 +1267,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const Icon(Iconsax.chart_21,
                         color: Color(0xFF5B86E5), size: 24),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Weekly Performance',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                     const Spacer(),
@@ -1583,44 +1309,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _confirmLogout() async {
-    Navigator.pop(context);
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldLogout == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      if (!context.mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
-      );
-    }
   }
 }
 
@@ -1709,14 +1397,13 @@ class _AnimatedDashboardCardState extends State<AnimatedDashboardCard>
               Icon(
                 widget.icon,
                 size: 30,
-                color: Colors.white,
+                color: widget.bcolor,
               ),
               const SizedBox(height: 8),
               Flexible(
                 child: Text(
                   widget.count,
                   style: const TextStyle(
-                    color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1846,13 +1533,15 @@ class _CalendarWidgetState extends State<CalendarWidget> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DashBoardProvider>(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
       ),
       child: TableCalendar(
         firstDay: DateTime.now().subtract(const Duration(days: 365)),
@@ -1863,9 +1552,9 @@ class _CalendarWidgetState extends State<CalendarWidget> {
         headerStyle: HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
-          titleTextStyle: const TextStyle(
+          titleTextStyle: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: isDark ? Colors.white : Colors.black87,
             fontSize: 16,
           ),
           leftChevronIcon:
@@ -1874,7 +1563,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
           const Icon(Iconsax.arrow_right_3, color: Color(0xFF5B86E5)),
           decoration: BoxDecoration(
             color: Colors.transparent,
-            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+            border: Border(bottom: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
           ),
         ),
         calendarStyle: CalendarStyle(
@@ -1889,12 +1578,12 @@ class _CalendarWidgetState extends State<CalendarWidget> {
           todayTextStyle:
           const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           selectedDecoration: BoxDecoration(
-            color: const Color(0xFF5B86E5).withOpacity(0.8),
+            color: const Color(0xFF5B86E5).withValues(alpha: 0.8),
             shape: BoxShape.circle,
           ),
           selectedTextStyle: const TextStyle(color: Colors.white),
-          defaultTextStyle: const TextStyle(color: Colors.black87),
-          weekendTextStyle: const TextStyle(color: Colors.black87),
+          defaultTextStyle: TextStyle(color: isDark ? Colors.white : Colors.black87),
+          weekendTextStyle: TextStyle(color: isDark ? Colors.white : Colors.black87),
           outsideDaysVisible: false,
           cellMargin: const EdgeInsets.all(4),
         ),
@@ -1910,14 +1599,14 @@ class _CalendarWidgetState extends State<CalendarWidget> {
             return Container(
               margin: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: isMeeting ? Colors.green.withOpacity(0.9) : null,
+                color: isMeeting ? Colors.green.withValues(alpha: 0.9) : null,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: Text(
                 '${day.day}',
                 style: TextStyle(
-                  color: isMeeting ? Colors.white : Colors.black87,
+                  color: isMeeting ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
                   fontWeight: isMeeting ? FontWeight.bold : FontWeight.normal,
                 ),
               ),

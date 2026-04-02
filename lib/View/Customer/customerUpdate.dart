@@ -248,6 +248,7 @@ import 'package:provider/provider.dart';
 import '../../Provider/customer/customer_provider.dart';
 import '../../Provider/product/product_provider.dart';
 import '../../Provider/staff/StaffProvider.dart';
+import '../../compoents/responsive_helper.dart';
 
 class UpdateCustomerScreen extends StatefulWidget {
   final String? customerId; // 👈 null = Add mode, not null = Edit mode
@@ -474,9 +475,9 @@ class _UpdateCustomerScreenState extends State<UpdateCustomerScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 80,
+            expandedHeight: context.sh(0.1),
             elevation: 0,
-            backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
+            backgroundColor: theme.appBarTheme.backgroundColor,
             surfaceTintColor: isDarkMode ? Colors.grey[800] : Colors.white,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -541,7 +542,7 @@ class _UpdateCustomerScreenState extends State<UpdateCustomerScreen> {
                                   width: 120,
                                   height: 120,
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? Colors.grey[700] : Colors.grey[100],
+                                    color: theme.cardColor,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: (_logoError != null)
@@ -1043,7 +1044,7 @@ class _UpdateCustomerScreenState extends State<UpdateCustomerScreen> {
           size: 20,
         ),
         filled: true,
-        fillColor: isDarkMode ? Colors.grey[700] : Colors.grey[100],
+        fillColor: theme.cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -1106,7 +1107,7 @@ class _UpdateCustomerScreenState extends State<UpdateCustomerScreen> {
           size: 18,
         ),
         filled: true,
-        fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
+        fillColor: theme.cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(

@@ -1,130 +1,11 @@
-// import 'package:flutter/material.dart';
-// import '../../Provider/successClient/SuccessClientProvider.dart';
-// import '../../model/SuccessClient.dart';
-//
-// class SuccessClientScreen extends StatefulWidget {
-//   const SuccessClientScreen({Key? key}) : super(key: key);
-//
-//   @override
-//   State<SuccessClientScreen> createState() => _SuccessClientScreenState();
-// }
-//
-// class _SuccessClientScreenState extends State<SuccessClientScreen> {
-//   late Future<SuccessClientModel?> _futureClients;
-//   final _service = SuccessClientService();
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _futureClients = _service.fetchSuccessClients();
-//   }
-//
-//   Future<void> _deleteClient(String id) async {
-//     final confirm = await showDialog<bool>(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text("Delete Client"),
-//         content: const Text("Are you sure you want to delete this client?"),
-//         actions: [
-//           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-//           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete")),
-//         ],
-//       ),
-//     );
-//
-//     if (confirm != true) return;
-//
-//     final success = await _service.deleteClient(id);
-//     if (success) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text("✅ Client deleted successfully")),
-//       );
-//       setState(() {
-//         _futureClients = _service.fetchSuccessClients(); // refresh list
-//       });
-//     } else {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text("❌ Failed to delete client")),
-//       );
-//     }
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Center(child: const Text('Success Clients',
-//             style: TextStyle(
-//               color: Colors.white,
-//               fontWeight: FontWeight.bold,
-//               fontSize: 22,
-//               letterSpacing: 1.2,
-//             )),
-//         ),
-//         centerTitle: true,
-//         elevation: 6,
-//         flexibleSpace: Container(
-//           decoration: const BoxDecoration(
-//             gradient: LinearGradient(
-//               colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
-//               begin: Alignment.topLeft,
-//               end: Alignment.bottomRight,
-//             ),
-//           ),
-//         ),
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//       body: FutureBuilder<SuccessClientModel?>(
-//         future: _futureClients,
-//         builder: (context, snapshot) {
-//           if (snapshot.connectionState == ConnectionState.waiting) {
-//             return const Center(child: CircularProgressIndicator());
-//           }
-//
-//           if (!snapshot.hasData || snapshot.data == null) {
-//             return const Center(child: Text('No data found.'));
-//           }
-//
-//           final clients = snapshot.data!.data;
-//
-//           return ListView.builder(
-//             itemCount: clients.length,
-//             itemBuilder: (context, index) {
-//               final client = clients[index];
-//               return Card(
-//                 margin: const EdgeInsets.all(8),
-//                 child: ListTile(
-//                   title: Text(client.companyName),
-//                   subtitle: Text('${client.designation} • ${client.status}'),
-//                   trailing: Row(
-//                     mainAxisSize: MainAxisSize.min,
-//                     children: [
-//                       Text(client.product?.name ?? 'No Product'),
-//                       IconButton(
-//                         icon: const Icon(Icons.delete, color: Colors.red),
-//                         onPressed: () => _deleteClient(client.id),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               );
-//             },
-//           );
-//         },
-//       ),
-//     );
-//   }
-// }
-//
-//
-//
-
-
-
 import 'package:flutter/material.dart';
-
 import '../../Provider/successClient/SuccessClientProvider.dart';
 import '../../model/SuccessClient.dart';
+import '../../compoents/responsive_helper.dart';
+import '../../compoents/premium_header.dart';
+import '../../compoents/premium_card.dart';
+import '../../compoents/app_theme.dart';
+import 'package:iconsax/iconsax.dart';
 
 class SuccessClientScreen extends StatefulWidget {
   const SuccessClientScreen({Key? key}) : super(key: key);
@@ -149,6 +30,7 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           "Confirm Deletion",
@@ -241,24 +123,21 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
     );
   }
 
-  // Check what type your client data actually is
-  Widget _buildClientCard(dynamic client, BuildContext context) {
-    // Try to access properties - you might need to adjust these based on your actual model
+   Widget _buildClientCard(dynamic client, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final companyName = client.companyName?.toString() ?? 'Unknown Company';
     final designation = client.designation?.toString() ?? 'No Designation';
     final status = client.status?.toString() ?? 'Unknown';
     final productName = client.product?.name?.toString() ?? 'No Product';
     final clientId = client.id?.toString() ?? '';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: PremiumCard(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -274,7 +153,6 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3748),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -282,9 +160,9 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
                         const SizedBox(height: 4),
                         Text(
                           designation,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: Colors.grey.shade500,
                           ),
                         ),
                       ],
@@ -293,77 +171,46 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
                   _buildStatusBadge(status),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: AppTheme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.category,
+                        const Icon(
+                          Iconsax.category,
                           size: 16,
-                          color: Colors.blue.shade600,
+                          color: AppTheme.primaryColor,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Text(
                           productName,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.blue.shade600,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
                           ),
                         ),
                       ],
                     ),
                   ),
                   const Spacer(),
-                  PopupMenuButton<String>(
-                    shape: RoundedRectangleBorder(
+                  // Delete Button or Menu
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: const [
-                            Icon(Icons.edit, size: 20, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: const [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete'),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'delete') {
-                        _deleteClient(clientId, companyName);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.more_vert,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
+                    child: IconButton(
+                      onPressed: () => _deleteClient(clientId, companyName),
+                      icon: const Icon(Iconsax.trash, color: Colors.red, size: 20),
+                      tooltip: 'Delete Client',
                     ),
                   ),
                 ],
@@ -406,87 +253,30 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Success Clients',
-          style: TextStyle(
-            color: Color(0xFF667EEA),
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            letterSpacing: 0.5,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        elevation: 0,
-        // flexibleSpace: Container(
-        //   decoration: BoxDecoration(
-        //     gradient: LinearGradient(
-        //       colors: [
-        //         const Color(0xFF667EEA),
-        //         const Color(0xFF764BA2),
-        //       ],
-        //       begin: Alignment.topLeft,
-        //       end: Alignment.bottomRight,
-        //     ),
-        //     boxShadow: [
-        //       BoxShadow(
-        //         color: Colors.blue.shade200.withOpacity(0.3),
-        //         blurRadius: 15,
-        //         offset: const Offset(0, 4),
-        //       ),
-        //     ],
-        //   ),
-        // ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left_2),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search clients...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                  )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-            ),
+          PremiumActionHeader(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            onAddTap: () {},
+            showAdd: false,
+            hintText: "Search success clients...",
           ),
           Expanded(
             child: FutureBuilder<SuccessClientModel?>(
@@ -499,7 +289,7 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
                       children: [
                         CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation(
-                            const Color(0xFF667EEA),
+                            theme.colorScheme.primary,
                           ),
                           strokeWidth: 2,
                         ),
@@ -595,8 +385,9 @@ class _SuccessClientScreenState extends State<SuccessClientScreen> {
                       _futureClients = _service.fetchSuccessClients();
                     });
                   },
-                  color: const Color(0xFF667EEA),
+                  color: AppTheme.primaryColor,
                   child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: filteredClients.length,
                     itemBuilder: (context, index) {
