@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF6366F1);
-  static const Color accentColor = Color(0xFF10B981);
+  // Crystal Teal Color Palette
+  static const Color primaryColor = Color(0xFF00968A); // Vibrant Teal
+  static const Color accentColor = Color(0xFF004D40);  // Deep Teal
+  static const Color secondaryColor = Color(0xFF00BFA5); // Bright Mint
   static const double cardRadius = 24.0;
 
   static final ThemeData lightTheme = ThemeData(
@@ -12,11 +14,11 @@ class AppTheme {
       seedColor: primaryColor,
       brightness: Brightness.light,
       primary: primaryColor,
-      secondary: accentColor,
+      secondary: secondaryColor,
       surface: Colors.white,
-      onSurface: Colors.black87,
+      onSurface: accentColor,
     ),
-    scaffoldBackgroundColor: const Color(0xFFF8FAFF),
+    scaffoldBackgroundColor: const Color(0xFFF1F8F9), // Soft Teal Tint
     cardColor: Colors.white,
     appBarTheme: const AppBarTheme(
       backgroundColor: primaryColor,
@@ -33,31 +35,34 @@ class AppTheme {
       ),
     ),
     drawerTheme: const DrawerThemeData(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFF1F8F9),
       elevation: 0,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.teal.shade100),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.teal.shade50),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: primaryColor, width: 2),
       ),
+      labelStyle: const TextStyle(color: accentColor),
     ),
   );
 
@@ -68,15 +73,15 @@ class AppTheme {
       seedColor: primaryColor,
       brightness: Brightness.dark,
       primary: primaryColor,
-      secondary: accentColor,
-      surface: const Color(0xFF1E1E2C),
+      secondary: secondaryColor,
+      surface: const Color(0xFF132A29), // Very Dark Teal
       onSurface: Colors.white,
-      background: const Color(0xFF12121A),
+      background: const Color(0xFF0A1817),
     ),
-    scaffoldBackgroundColor: const Color(0xFF12121A),
-    cardColor: const Color(0xFF1E1E2C),
+    scaffoldBackgroundColor: const Color(0xFF0A1817),
+    cardColor: const Color(0xFF132A29),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF1E1E2C),
+      backgroundColor: Color(0xFF132A29),
       elevation: 0,
       centerTitle: true,
       shape: RoundedRectangleBorder(
@@ -90,37 +95,38 @@ class AppTheme {
       ),
     ),
     drawerTheme: const DrawerThemeData(
-      backgroundColor: Color(0xFF1A1A25),
+      backgroundColor: Color(0xFF0A1817),
       elevation: 0,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF1E1E2C),
+      fillColor: const Color(0xFF132A29),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white12),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.white12),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white12),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.white10),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: primaryColor, width: 2),
       ),
     ),
   );
 
-  // Gradient helper for common use cases
+  // Premium Crystal Gradent
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryColor, accentColor],
+    colors: [primaryColor, secondaryColor],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -133,16 +139,16 @@ class AppTheme {
       boxShadow: [
         BoxShadow(
           color: isDarkMode 
-            ? Colors.black.withOpacity(0.3) 
-            : Colors.grey.withOpacity(0.1),
-          blurRadius: 20,
-          offset: const Offset(0, 10),
+            ? Colors.black.withOpacity(0.4) 
+            : const Color(0x15004D40), // Subtle deep teal shadow
+          blurRadius: 30,
+          offset: const Offset(0, 15),
         ),
       ],
       border: Border.all(
         color: isDarkMode 
-          ? Colors.white.withOpacity(0.05) 
-          : Colors.black.withOpacity(0.03),
+          ? Colors.white.withOpacity(0.08) 
+          : Colors.teal.shade50.withOpacity(0.5),
         width: 1,
       ),
     );

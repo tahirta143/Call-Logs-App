@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../Provider/theme_provider.dart';
+import '../../Provider/auth/access_control_provider.dart';
+import '../../Provider/theme/theme_provider.dart';
 import '../../compoents/responsive_helper.dart';
-import '../Meeting_calender/AllMeeting.dart';
-import '../followUpScreen/FollowUpScreen.dart';
-import '../AssignScreen/AssignCustomer.dart';
-import '../call_logs_track/call_logs_track.dart';
-import '../SuccessClientScreen/successClientProvider.dart';
-import '../Meeting_calender/MeetingCalender.dart';
-import '../Activity_Track/Activity_Track_Screen.dart';
 import '../Auths/Login_screen.dart';
+import '../../helpers/permission_helper.dart';
 
-import '../Customer/customer_list.dart';
 import '../home/dashboard_screen.dart';
-import '../products/product_screen.dart';
 import '../staff/staffListScreen.dart';
+import '../stock/item_definition_screen.dart';
+import '../stock/services_products_screen.dart';
+import '../stock/opening_stock_screen.dart';
+import '../stock/item_rate_screen.dart';
+import '../stock/quotation_screen.dart';
+import '../stock/estimation_screen.dart';
 
 class BottombarScreen extends StatefulWidget {
   const BottombarScreen({super.key});
@@ -28,54 +27,39 @@ class BottombarScreen extends StatefulWidget {
 class _BottombarScreenState extends State<BottombarScreen> {
   int _selectedIndex = 0;
   String? userRole;
+  List<String> userPermissions = [];
   List<Widget> _screens = [];
+  
+  List<_NavItem> _currentNavItems = [];
   
   // For sub-screen navigation support
   Widget? _subScreenBody;
   String? _subScreenTitle;
 
-  // Admin tabs config
-  final List<_NavItem> _adminItems = const [
-    _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.shopping_bag_rounded, label: 'Product'),
-    _NavItem(icon: Icons.people_rounded, label: 'Staff'),
-    _NavItem(icon: Icons.person_outline_rounded, label: 'Customer'),
-  ];
-
-  // Non-admin tabs config
-  final List<_NavItem> _staffItems = const [
-    _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.person_outline_rounded, label: 'Customer'),
-  ];
-
-  List<_NavItem> get _currentItems =>
-      userRole == 'admin' ? _adminItems : _staffItems;
+  List<_NavItem> get _currentItems => _currentNavItems;
 
   @override
   void initState() {
     super.initState();
-    _loadUserRole();
+    // Initialize AccessControlProvider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AccessControlProvider>(context, listen: false).init();
+    });
   }
 
-  Future<void> _loadUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    final role = prefs.getString('role');
-    setState(() {
-      userRole = role;
-      if (role == 'admin') {
-        _screens = const [
-          DashboardScreen(),
-          ProductScreen(),
-          StaffScreen(),
-          CompanyListScreen(),
-        ];
-      } else {
-        _screens = const [
-          DashboardScreen(),
-          CompanyListScreen(),
-        ];
-      }
-    });
+  void _buildNavigation(AccessControlProvider acp) {
+    List<_NavItem> items = [const _NavItem(icon: Icons.home_rounded, label: 'Home')];
+    List<Widget> screens = [const DashboardScreen()];
+
+    if (acp.canRead('EMPLOYEE.EMPLOYEE')) {
+      items.add(const _NavItem(icon: Icons.people_rounded, label: 'Staff'));
+      screens.add(const StaffScreen());
+    }
+
+    if (_currentNavItems.length != items.length) {
+      _currentNavItems = items;
+      _screens = screens;
+    }
   }
 
   void _onItemTapped(int index) {
@@ -173,11 +157,15 @@ class _BottombarScreenState extends State<BottombarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (userRole == null) {
+    final acp = Provider.of<AccessControlProvider>(context);
+
+    if (acp.isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    _buildNavigation(acp);
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -199,7 +187,7 @@ class _BottombarScreenState extends State<BottombarScreen> {
             ),
           ],
         ),
-        drawer: _buildDrawer(theme),
+        drawer: _buildDrawer(theme, acp),
         body: Padding(
           padding: const EdgeInsets.only(bottom: 90),
           child: _subScreenBody ?? _screens[_selectedIndex],
@@ -209,7 +197,7 @@ class _BottombarScreenState extends State<BottombarScreen> {
     );
   }
 
-  Widget _buildDrawer(ThemeData theme) {
+  Widget _buildDrawer(ThemeData theme, AccessControlProvider acp) {
     return Drawer(
       width: context.sw(0.78),
       backgroundColor: theme.drawerTheme.backgroundColor,
@@ -284,65 +272,71 @@ class _BottombarScreenState extends State<BottombarScreen> {
                     Navigator.pop(context);
                   },
                 ),
-                _buildDrawerItem(
-                  icon: Iconsax.calendar_2,
-                  label: 'All Meeting Details',
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToSubScreen(const NoDateMeetingScreen(), 'Meetings');
-                  },
+
+                if (acp.isAdmin || acp.canRead('INVENTORY.ITEM_DEFINITION') || acp.canRead('SERVICES.SERVICE') ||
+                    acp.canRead('INVENTORY.OPENING_STOCK') || acp.canRead('INVENTORY.ITEM_RATE') ||
+                    acp.canRead('INVENTORY.QUOTATION') || acp.canRead('INVENTORY.ESTIMATION'))
+                _buildDrawerExpansionItem(
+                  icon: Iconsax.box_search,
+                  label: 'Stock',
+                  children: [
+                    if (acp.canRead('INVENTORY.ITEM_DEFINITION'))
+                    _buildDrawerItem(
+                      icon: Iconsax.box,
+                      label: 'Item Definition',
+                      onTap: () {
+                        navigateToSubScreen(const ItemDefinitionScreen(), 'Item Definition');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (acp.canRead('SERVICES.SERVICE'))
+                    _buildDrawerItem(
+                      icon: Iconsax.category,
+                      label: 'Services & Products',
+                      onTap: () {
+                        navigateToSubScreen(const ServicesProductsScreen(), 'Services & Products');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (acp.canRead('INVENTORY.OPENING_STOCK'))
+                    _buildDrawerItem(
+                      icon: Iconsax.box_add,
+                      label: 'Opening Stock',
+                      onTap: () {
+                        navigateToSubScreen(const OpeningStockScreen(), 'Opening Stock');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (acp.canRead('INVENTORY.ITEM_RATE'))
+                    _buildDrawerItem(
+                      icon: Iconsax.money_send,
+                      label: 'Item Rate',
+                      onTap: () {
+                        navigateToSubScreen(const ItemRateScreen(), 'Item Rate');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (acp.canRead('INVENTORY.QUOTATION'))
+                    _buildDrawerItem(
+                      icon: Iconsax.document_text,
+                      label: 'Quotation',
+                      onTap: () {
+                        navigateToSubScreen(const QuotationScreen(), 'Quotation');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (acp.canRead('INVENTORY.ESTIMATION'))
+                    _buildDrawerItem(
+                      icon: Iconsax.calculator,
+                      label: 'Estimation',
+                      onTap: () {
+                        navigateToSubScreen(const EstimationScreen(), 'Estimation');
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
                 ),
-                _buildDrawerItem(
-                  icon: Iconsax.refresh_circle,
-                  label: 'Follow Up',
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToSubScreen(const FollowUpScreen(), 'Follow Up');
-                  },
-                ),
-                if (userRole == 'admin')
-                  _buildDrawerItem(
-                    icon: Iconsax.user_add,
-                    label: 'Assign To',
-                    onTap: () {
-                      Navigator.pop(context);
-                      navigateToSubScreen(const UnassignCustomerScreen(), 'Assign Customers');
-                    },
-                  ),
-                if (userRole == 'admin')
-                  _buildDrawerItem(
-                    icon: Iconsax.call,
-                    label: 'Call Track',
-                    onTap: () {
-                      Navigator.pop(context);
-                      navigateToSubScreen(const CallLogsScreen(), 'Call Tracker');
-                    },
-                  ),
-                _buildDrawerItem(
-                  icon: Iconsax.like_1,
-                  label: 'Success Client',
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToSubScreen(const SuccessClientScreen(), 'Success Clients');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Iconsax.calendar_1,
-                  label: 'Calendar',
-                  onTap: () {
-                    Navigator.pop(context);
-                    navigateToSubScreen(const UpcomingMeetingsScreen(), 'Meeting Calendar');
-                  },
-                ),
-                if (userRole == 'admin')
-                  _buildDrawerItem(
-                    icon: Iconsax.activity,
-                    label: 'Activity Track',
-                    onTap: () {
-                      Navigator.pop(context);
-                      navigateToSubScreen(const ActivityTrackScreen(), 'Activity Tracker');
-                    },
-                  ),
+
                 const Divider(thickness: 1),
                 _buildDrawerItem(
                   icon: Iconsax.logout,
@@ -379,6 +373,32 @@ class _BottombarScreenState extends State<BottombarScreen> {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
+  }
+
+  Widget _buildDrawerExpansionItem({
+    required IconData icon,
+    required String label,
+    required List<Widget> children,
+    Color? color,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        leading: Icon(icon, color: color ?? theme.colorScheme.primary),
+        title: Text(
+          label,
+          style: TextStyle(
+            color: color ?? (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.only(left: 16),
+        children: children,
+      ),
     );
   }
 

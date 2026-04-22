@@ -1,11 +1,11 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:infinity/Provider/login_provider.dart';
-import 'package:infinity/View/Auths/Sign_up.dart';
-import 'package:infinity/compoents/AppButton.dart';
-import 'package:infinity/compoents/AppTextfield.dart';
+import 'package:infinity/Provider/auth/login_provider.dart';
+
 import 'package:infinity/compoents/responsive_helper.dart';
 import 'package:provider/provider.dart';
+
+import '../../compoents/app_button.dart';
+import '../../compoents/app_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -61,14 +61,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Form Section
                 Column(
                   children: [
-                    // Email Field
-                    _buildInputLabel('Email', theme),
+                    // Username Field
+                    _buildInputLabel('Username', theme),
                     const SizedBox(height: 8),
                     AppTextField(
-                      controller: loginProvider.emailController,
-                      label: 'Enter your email',
-                      icon: Icons.email_outlined,
-                      validator: (value) => value!.isEmpty ? 'Enter Email' : null,
+                      controller: loginProvider.usernameController,
+                      label: 'Enter your username',
+                      icon: Icons.person_outline,
+                      validator: (value) => value!.isEmpty ? 'Enter Username' : null,
                     ),
                     
                     SizedBox(height: context.sh(0.025)),
@@ -101,37 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             press: () => loginProvider.login(context),
                           ),
                     
-                    SizedBox(height: context.sh(0.04)),
-
-                    // Sign Up Section
-                    Center(
-                      child: RichText(
-                        text: TextSpan(
-                          text: "Don't have an account? ",
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Sign up',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const SignUp()),
-                                  );
-                                },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:infinity/View/staff/create_staff.dart';
-import 'package:infinity/View/staff/updateScreenStaff.dart';
-import 'package:infinity/model/staffModel.dart' hide Image;
+import 'package:infinity/View/staff/staff_form_dialog.dart';
+import 'package:infinity/constants/api_config.dart';
+import 'package:infinity/model/staff_model/staffModel.dart' hide Image;
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../compoents/premium_header.dart';
@@ -9,6 +9,7 @@ import '../../compoents/premium_card.dart';
 import '../../compoents/app_theme.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../Provider/staff/StaffProvider.dart';
+import '../../helpers/permission_helper.dart';
 
 class StaffScreen extends StatefulWidget {
   const StaffScreen({super.key});
@@ -22,11 +23,29 @@ class _StaffScreenState extends State<StaffScreen> {
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
+  List<String> _userPermissions = [];
+  bool _canRead = true;
+  bool _canCreate = false;
+  bool _canUpdate = false;
+  bool _canDelete = false;
+
   @override
   void initState() {
     super.initState();
+    _initPermissions();
     Future.microtask(() =>
         Provider.of<StaffProvider>(context, listen: false).fetchStaff());
+  }
+
+  Future<void> _initPermissions() async {
+    final perms = await PermissionHelper.getStoredPermissions();
+    setState(() {
+      _userPermissions = perms;
+      _canRead = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.READ', perms);
+      _canCreate = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.CREATE', perms);
+      _canUpdate = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.UPDATE', perms);
+      _canDelete = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.DELETE', perms);
+    });
   }
 
   @override
@@ -35,18 +54,18 @@ class _StaffScreenState extends State<StaffScreen> {
     super.dispose();
   }
 
-  List<Data> _filteredStaffs(StaffProvider provider) {
+  List<StaffData> _filteredStaffs(StaffProvider provider) {
     var filtered = provider.staffs;
 
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((staff) {
-        final username = staff.username?.toLowerCase() ?? '';
+        final name = staff.employeeName?.toLowerCase() ?? '';
         final email = staff.email?.toLowerCase() ?? '';
         final department = staff.department?.toLowerCase() ?? '';
         final query = _searchQuery.toLowerCase();
 
-        return username.contains(query) ||
+        return name.contains(query) ||
             email.contains(query) ||
             department.contains(query);
       }).toList();
@@ -155,61 +174,91 @@ class _StaffScreenState extends State<StaffScreen> {
 
     return Consumer<StaffProvider>(
       builder: (context, staffProvider, child) {
-        final filteredStaffs = _filteredStaffs(staffProvider);
+    // Check for Read permission
+    if (!_canRead) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Staff Management')),
+        body: const Center(
+          child: Text(
+            "You don't have permission to view staff.",
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+          ),
+        ),
+      );
+    }
 
-        return Column(
-          children: [
-            PremiumActionHeader(
-              controller: _searchController,
-              onChanged: (value) => setState(() => _searchQuery = value),
-              onAddTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const StaffCreateScreen()),
+    final filteredStaffs = _filteredStaffs(staffProvider);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text(
+          'Staff Management',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left_2),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Column(
+        children: [
+          PremiumActionHeader(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            onAddTap: () {
+              if (_canCreate) {
+                showDialog(
+                  context: context,
+                  builder: (context) => const StaffFormDialog(),
                 );
-              },
-              hintText: "Search staff members...",
-            ),
-            // Filter Chips Row
-            if (staffProvider.staffs.isNotEmpty)
-              Container(
-                height: 50,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: _availableDepartments(staffProvider).map((dept) {
-                    final isSelected = _selectedFilter == dept;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(dept),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() => _selectedFilter = selected ? dept : 'All');
-                        },
-                        backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade100,
-                        selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                        labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.primaryColor : Colors.grey.shade600,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        side: BorderSide.none,
-                        showCheckmark: false,
+              }
+            },
+            hintText: "Search staff members...",
+            showAdd: _canCreate,
+          ),
+          // Filter Chips Row
+          if (staffProvider.staffs.isNotEmpty)
+            Container(
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: _availableDepartments(staffProvider).map((dept) {
+                  final isSelected = _selectedFilter == dept;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(dept),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() => _selectedFilter = selected ? dept : 'All');
+                      },
+                      backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                      labelStyle: TextStyle(
+                        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade600,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
-                    );
-                  }).toList(),
-                ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      side: BorderSide.none,
+                      showCheckmark: false,
+                    ),
+                  );
+                }).toList(),
               ),
-            Expanded(
-              child: staffProvider.isLoading
-                  ? _buildShimmerLoading()
-                  : filteredStaffs.isEmpty
-                      ? _buildEmptyState(context, _searchQuery, _searchController)
-                      : _buildStaffList(context, filteredStaffs),
             ),
-          ],
-        );
+          Expanded(
+            child: staffProvider.isLoading
+                ? _buildShimmerLoading()
+                : filteredStaffs.isEmpty
+                    ? _buildEmptyState(context, _searchQuery, _searchController)
+                    : _buildStaffList(context, filteredStaffs),
+          ),
+        ],
+      ),
+    );
       }
     );
   }
@@ -274,7 +323,7 @@ class _StaffScreenState extends State<StaffScreen> {
           if (searchQuery.isNotEmpty)
             ElevatedButton.icon(
               onPressed: () {
-                searchController.clear();
+                _searchController.clear();
                 setState(() => _searchQuery = '');
               },
               icon: const Icon(Icons.clear_all_rounded),
@@ -284,12 +333,12 @@ class _StaffScreenState extends State<StaffScreen> {
                 foregroundColor: isDarkMode ? Colors.white : Colors.grey[800],
               ),
             )
-          else
+          else if (_canCreate)
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) =>  StaffCreateScreen()),
+                showDialog(
+                  context: context,
+                  builder: (context) => const StaffFormDialog(),
                 );
               },
               icon: const Icon(Icons.person_add_alt_1_rounded),
@@ -300,13 +349,13 @@ class _StaffScreenState extends State<StaffScreen> {
     );
   }
 
-  Widget _buildStaffList(BuildContext context, List<Data> staffs) {
+  Widget _buildStaffList(BuildContext context, List<StaffData> staffs) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: staffs.length,
       itemBuilder: (context, index) {
         final staff = staffs[index];
-        final initials = staff.username
+        final initials = staff.employeeName
                 ?.split(' ')
                 .map((word) => word.isNotEmpty ? word[0] : '')
                 .take(2)
@@ -342,12 +391,12 @@ class _StaffScreenState extends State<StaffScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        staff.username ?? 'Unknown',
+                        staff.employeeName ?? 'Unknown',
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        staff.department ?? 'No Department',
+                        staff.designation ?? staff.department ?? 'No Designation',
                         style: TextStyle(fontSize: 12, color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
@@ -371,11 +420,12 @@ class _StaffScreenState extends State<StaffScreen> {
                 // Actions
                 Column(
                   children: [
+                    if (_canUpdate)
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => EditStaffScreen(staff: staff)),
+                        showDialog(
+                          context: context,
+                          builder: (context) => StaffFormDialog(staff: staff),
                         );
                       },
                       child: Container(
@@ -387,9 +437,10 @@ class _StaffScreenState extends State<StaffScreen> {
                         child: const Icon(Iconsax.edit, size: 16, color: AppTheme.primaryColor),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    if (_canUpdate && _canDelete) const SizedBox(height: 12),
+                    if (_canDelete)
                     GestureDetector(
-                      onTap: () => _showDeleteDialog(context, staff.sId ?? '', staff.username ?? 'Staff'),
+                      onTap: () => _showDeleteDialog(context, staff.id ?? '', staff.employeeName ?? 'Staff'),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -409,8 +460,8 @@ class _StaffScreenState extends State<StaffScreen> {
     );
   }
 
-  Widget _buildStaffAvatar(Data staff, String initials, ThemeData theme) {
-    final imageUrl = staff.image?.url;
+  Widget _buildStaffAvatar(StaffData staff, String initials, ThemeData theme) {
+    final imageUrl = staff.profileImage;
 
     if (imageUrl == null || imageUrl.isEmpty) {
       return Center(
@@ -426,7 +477,7 @@ class _StaffScreenState extends State<StaffScreen> {
     }
 
     return Image.network(
-      imageUrl,
+      ApiConfig.getImageUrl(imageUrl),
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return Center(
@@ -455,6 +506,32 @@ class _StaffScreenState extends State<StaffScreen> {
       },
     );
   }
+
+  // void _showDeleteDialog(BuildContext context, String staffId, String staffName) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Delete Staff'),
+  //       content: Text('Are you sure you want to delete $staffName?'),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('Cancel'),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             Provider.of<StaffProvider>(context, listen: false).DeleteStaff(staffId);
+  //             Navigator.pop(context);
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               const SnackBar(content: Text('Staff deleted successfully')),
+  //             );
+  //           },
+  //           child: const Text('Delete', style: TextStyle(color: Colors.red)),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Color _getAvatarColor(int index) {
     final colors = [

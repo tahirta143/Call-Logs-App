@@ -5,6 +5,7 @@ import 'app_theme.dart';
 class PremiumCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
   final Color? color;
   final double? radius;
   final VoidCallback? onTap;
@@ -13,6 +14,7 @@ class PremiumCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding,
+    this.margin,
     this.color,
     this.radius,
     this.onTap,
@@ -24,6 +26,7 @@ class PremiumCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: padding,
+        margin: margin,
         decoration: AppTheme.premiumCardDecoration(context, color: color, radius: radius),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(radius ?? AppTheme.cardRadius),
