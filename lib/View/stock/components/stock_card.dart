@@ -7,8 +7,7 @@ class StockCard extends StatelessWidget {
   final String subtitle;
   final String? trailing;
   final IconData icon;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
+  final VoidCallback? onTap;
   final String? imageUrl;
 
   const StockCard({
@@ -17,8 +16,7 @@ class StockCard extends StatelessWidget {
     required this.subtitle,
     this.trailing,
     required this.icon,
-    this.onEdit,
-    this.onDelete,
+    this.onTap,
     this.imageUrl,
   });
 
@@ -26,6 +24,7 @@ class StockCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return PremiumCard(
       padding: const EdgeInsets.all(16),
+      onTap: onTap,
       child: Row(
         children: [
           // Icon or Image
@@ -64,34 +63,12 @@ class StockCard extends StatelessWidget {
               ],
             ),
           ),
-          // Trailing Info & Actions
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (trailing != null)
-                Text(
-                  trailing!,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-                ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (onEdit != null)
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blue),
-                      onPressed: onEdit,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  if (onDelete != null)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                      onPressed: onDelete,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                ],
-              ),
-            ],
-          ),
+          // Trailing Info
+          if (trailing != null)
+            Text(
+              trailing!,
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+            ),
         ],
       ),
     );

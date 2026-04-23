@@ -16,15 +16,16 @@ import '../stock/opening_stock_screen.dart';
 import '../stock/item_rate_screen.dart';
 import '../stock/quotation_screen.dart';
 import '../stock/estimation_screen.dart';
+import '../../constants/permission_keys.dart';
 
 class BottombarScreen extends StatefulWidget {
   const BottombarScreen({super.key});
 
   @override
-  State<BottombarScreen> createState() => _BottombarScreenState();
+  State<BottombarScreen> createState() => BottombarScreenState();
 }
 
-class _BottombarScreenState extends State<BottombarScreen> {
+class BottombarScreenState extends State<BottombarScreen> {
   int _selectedIndex = 0;
   String? userRole;
   List<String> userPermissions = [];
@@ -51,7 +52,7 @@ class _BottombarScreenState extends State<BottombarScreen> {
     List<_NavItem> items = [const _NavItem(icon: Icons.home_rounded, label: 'Home')];
     List<Widget> screens = [const DashboardScreen()];
 
-    if (acp.canRead('EMPLOYEE.EMPLOYEE')) {
+    if (acp.canRead(PermissionKeys.employee)) {
       items.add(const _NavItem(icon: Icons.people_rounded, label: 'Staff'));
       screens.add(const StaffScreen());
     }
@@ -130,6 +131,13 @@ class _BottombarScreenState extends State<BottombarScreen> {
   }
 
   Future<bool> _onWillPop() async {
+    if (_subScreenBody != null) {
+      setState(() {
+        _subScreenBody = null;
+        _subScreenTitle = null;
+      });
+      return false;
+    }
     if (_selectedIndex != 0) {
       setState(() => _selectedIndex = 0);
       return false;
@@ -180,6 +188,12 @@ class _BottombarScreenState extends State<BottombarScreen> {
             _getAppBarTitle(),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
+          leading: Builder(builder: (context) {
+            return IconButton(
+              icon: const Icon(Iconsax.menu_1),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            );
+          }),
           actions: [
             IconButton(
               icon: Icon(isDark ? Iconsax.sun_1 : Iconsax.moon),
@@ -198,6 +212,8 @@ class _BottombarScreenState extends State<BottombarScreen> {
   }
 
   Widget _buildDrawer(ThemeData theme, AccessControlProvider acp) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return Drawer(
       width: context.sw(0.78),
       backgroundColor: theme.drawerTheme.backgroundColor,
@@ -209,7 +225,15 @@ class _BottombarScreenState extends State<BottombarScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.7)],
+                colors: isDark
+                    ? [
+                        const Color(0xFF1A1A1A), // _darkCard
+                        const Color(0xFF0D0D0D), // _darkBg
+                      ]
+                    : [
+                        theme.colorScheme.primary,
+                        theme.colorScheme.primary.withValues(alpha: 0.7)
+                      ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -229,10 +253,11 @@ class _BottombarScreenState extends State<BottombarScreen> {
                     children: [
                       CircleAvatar(
                         radius: 32,
-                        backgroundColor: Colors.white.withOpacity(0.9),
+                        backgroundColor:
+                            isDark ? Colors.white10 : Colors.white.withOpacity(0.9),
                         child: Icon(
                           Iconsax.profile_circle,
-                          color: theme.colorScheme.primary,
+                          color: isDark ? Colors.white : theme.colorScheme.primary,
                           size: 40,
                         ),
                       ),
@@ -240,7 +265,9 @@ class _BottombarScreenState extends State<BottombarScreen> {
                       Text(
                         'Welcome,',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: isDark
+                              ? Colors.white70
+                              : Colors.white.withOpacity(0.9),
                           fontSize: 14,
                         ),
                       ),
@@ -267,75 +294,111 @@ class _BottombarScreenState extends State<BottombarScreen> {
                 _buildDrawerItem(
                   icon: Iconsax.home,
                   label: 'Dashboard',
+                  isSelected: _subScreenBody == null && _selectedIndex == 0,
                   onTap: () {
                     _onItemTapped(0);
                     Navigator.pop(context);
                   },
                 ),
 
-                if (acp.isAdmin || acp.canRead('INVENTORY.ITEM_DEFINITION') || acp.canRead('SERVICES.SERVICE') ||
-                    acp.canRead('INVENTORY.OPENING_STOCK') || acp.canRead('INVENTORY.ITEM_RATE') ||
-                    acp.canRead('INVENTORY.QUOTATION') || acp.canRead('INVENTORY.ESTIMATION'))
-                _buildDrawerExpansionItem(
-                  icon: Iconsax.box_search,
-                  label: 'Stock',
-                  children: [
-                    if (acp.canRead('INVENTORY.ITEM_DEFINITION'))
-                    _buildDrawerItem(
-                      icon: Iconsax.box,
-                      label: 'Item Definition',
-                      onTap: () {
-                        navigateToSubScreen(const ItemDefinitionScreen(), 'Item Definition');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    if (acp.canRead('SERVICES.SERVICE'))
-                    _buildDrawerItem(
-                      icon: Iconsax.category,
-                      label: 'Services & Products',
-                      onTap: () {
-                        navigateToSubScreen(const ServicesProductsScreen(), 'Services & Products');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    if (acp.canRead('INVENTORY.OPENING_STOCK'))
-                    _buildDrawerItem(
-                      icon: Iconsax.box_add,
-                      label: 'Opening Stock',
-                      onTap: () {
-                        navigateToSubScreen(const OpeningStockScreen(), 'Opening Stock');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    if (acp.canRead('INVENTORY.ITEM_RATE'))
-                    _buildDrawerItem(
-                      icon: Iconsax.money_send,
-                      label: 'Item Rate',
-                      onTap: () {
-                        navigateToSubScreen(const ItemRateScreen(), 'Item Rate');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    if (acp.canRead('INVENTORY.QUOTATION'))
-                    _buildDrawerItem(
-                      icon: Iconsax.document_text,
-                      label: 'Quotation',
-                      onTap: () {
-                        navigateToSubScreen(const QuotationScreen(), 'Quotation');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    if (acp.canRead('INVENTORY.ESTIMATION'))
-                    _buildDrawerItem(
-                      icon: Iconsax.calculator,
-                      label: 'Estimation',
-                      onTap: () {
-                        navigateToSubScreen(const EstimationScreen(), 'Estimation');
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
+                if (acp.canRead(PermissionKeys.employee))
+                  _buildDrawerItem(
+                    icon: Iconsax.people,
+                    label: 'Staff',
+                    isSelected: _subScreenBody == null &&
+                        _selectedIndex < _currentItems.length &&
+                        _currentItems[_selectedIndex].label == 'Staff',
+                    onTap: () {
+                      final staffIndex = _currentItems
+                          .indexWhere((item) => item.label == 'Staff');
+                      if (staffIndex != -1) {
+                        _onItemTapped(staffIndex);
+                      }
+                      Navigator.pop(context);
+                    },
+                  ),
+
+                if (acp.isAdmin ||
+                    acp.canRead(PermissionKeys.itemDefinition) ||
+                    acp.canRead(PermissionKeys.service) ||
+                    acp.canRead(PermissionKeys.openingStock) ||
+                    acp.canRead(PermissionKeys.itemRate) ||
+                    acp.canRead(PermissionKeys.quotation) ||
+                    acp.canRead(PermissionKeys.estimation))
+                  _buildDrawerExpansionItem(
+                    icon: Iconsax.box_search,
+                    label: 'Stock',
+                    initiallyExpanded: [
+                      'Item Definition',
+                      'Services & Products',
+                      'Opening Stock',
+                      'Item Rate',
+                      'Quotation',
+                      'Estimation'
+                    ].contains(_subScreenTitle),
+                    children: [
+                      if (acp.canRead(PermissionKeys.itemDefinition))
+                        _buildDrawerItem(
+                          icon: Iconsax.box,
+                          label: 'Item Definition',
+                          isSelected: _subScreenTitle == 'Item Definition',
+                          onTap: () {
+                            navigateToSubScreen(const ItemDefinitionScreen(), 'Item Definition');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      if (acp.canRead(PermissionKeys.service))
+                        _buildDrawerItem(
+                          icon: Iconsax.category,
+                          label: 'Services & Products',
+                          isSelected: _subScreenTitle == 'Services & Products',
+                          onTap: () {
+                            navigateToSubScreen(const ServicesProductsScreen(), 'Services & Products');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      if (acp.canRead(PermissionKeys.openingStock))
+                        _buildDrawerItem(
+                          icon: Iconsax.box_add,
+                          label: 'Opening Stock',
+                          isSelected: _subScreenTitle == 'Opening Stock',
+                          onTap: () {
+                            navigateToSubScreen(const OpeningStockScreen(), 'Opening Stock');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      if (acp.canRead(PermissionKeys.itemRate))
+                        _buildDrawerItem(
+                          icon: Iconsax.money_send,
+                          label: 'Item Rate',
+                          isSelected: _subScreenTitle == 'Item Rate',
+                          onTap: () {
+                            navigateToSubScreen(const ItemRateScreen(), 'Item Rate');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      if (acp.canRead(PermissionKeys.quotation))
+                        _buildDrawerItem(
+                          icon: Iconsax.document_text,
+                          label: 'Quotation',
+                          isSelected: _subScreenTitle == 'Quotation',
+                          onTap: () {
+                            navigateToSubScreen(const QuotationScreen(), 'Quotation');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      if (acp.canRead(PermissionKeys.estimation))
+                        _buildDrawerItem(
+                          icon: Iconsax.calculator,
+                          label: 'Estimation',
+                          isSelected: _subScreenTitle == 'Estimation',
+                          onTap: () {
+                            navigateToSubScreen(const EstimationScreen(), 'Estimation');
+                            Navigator.pop(context);
+                          },
+                        ),
+                    ],
+                  ),
 
                 const Divider(thickness: 1),
                 _buildDrawerItem(
@@ -356,18 +419,28 @@ class _BottombarScreenState extends State<BottombarScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    bool isSelected = false,
     Color? color,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return ListTile(
-      leading: Icon(icon, color: color ?? theme.colorScheme.primary),
+      selected: isSelected,
+      selectedTileColor: theme.colorScheme.primary.withOpacity(isDark ? 0.2 : 0.1),
+      leading: Icon(
+        icon,
+        color: isSelected
+            ? theme.colorScheme.primary
+            : (color ?? (isDark ? Colors.white70 : Colors.black87)),
+      ),
       title: Text(
         label,
         style: TextStyle(
-          color: color ?? (isDark ? Colors.white70 : Colors.black87),
-          fontWeight: FontWeight.w500,
+          color: isSelected
+              ? theme.colorScheme.primary
+              : (color ?? (isDark ? Colors.white70 : Colors.black87)),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
         ),
       ),
       onTap: onTap,
@@ -380,6 +453,7 @@ class _BottombarScreenState extends State<BottombarScreen> {
     required IconData icon,
     required String label,
     required List<Widget> children,
+    bool initiallyExpanded = false,
     Color? color,
   }) {
     final theme = Theme.of(context);
@@ -388,6 +462,7 @@ class _BottombarScreenState extends State<BottombarScreen> {
     return Theme(
       data: theme.copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
         leading: Icon(icon, color: color ?? theme.colorScheme.primary),
         title: Text(
           label,

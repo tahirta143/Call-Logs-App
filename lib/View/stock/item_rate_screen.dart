@@ -7,7 +7,7 @@ import '../../compoents/app_theme.dart';
 import '../../compoents/app_text_field.dart';
 import '../../compoents/app_button.dart';
 import '../../model/stock/stock_models.dart';
-import '../../helpers/permission_helper.dart';
+import '../../constants/permission_keys.dart';
 import 'components/stock_card.dart';
 
 class ItemRateScreen extends StatefulWidget {
@@ -41,84 +41,86 @@ class _ItemRateScreenState extends State<ItemRateScreen> {
   Widget build(BuildContext context) {
     final acp = Provider.of<AccessControlProvider>(context);
 
-    if (acp.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    const String resource = 'INVENTORY.ITEM_RATE';
+    final String resource = PermissionKeys.itemRate;
     final bool canRead = acp.canRead(resource);
     final bool canCreate = acp.canCreate(resource);
     final bool canUpdate = acp.canUpdate(resource);
-    final bool canDelete = acp.canDelete(resource);
 
     if (!canRead) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Item Rates')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text("You don't have permission to view item rates.", style: TextStyle(color: Colors.grey.shade600)),
-            ],
-          ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text("You don't have permission to view item rates.", style: TextStyle(color: Colors.grey.shade600)),
+          ],
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Item Rates'),
-        actions: [
-          if (canCreate)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: () => _showForm(),
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AppTextField(
-              label: 'Search Item',
-              controller: _searchController,
-              prefixIcon: Icons.search,
-              onChanged: (v) {
-                Provider.of<StockProvider>(context, listen: false).fetchItemRates(search: v);
-              },
-            ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: 'Search Item',
+                  controller: _searchController,
+                  prefixIcon: Icons.search,
+                  onChanged: (v) {
+                    Provider.of<StockProvider>(context, listen: false).fetchItemRates(search: v);
+                  },
+                ),
+              ),
+              if (canCreate) ...[
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    onPressed: () => _showForm(),
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    tooltip: 'Add Item Rate',
+                  ),
+                ),
+              ],
+            ],
           ),
-          Expanded(
-            child: Consumer<StockProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading && provider.itemRates.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: provider.itemRates.length,
-                  itemBuilder: (context, index) {
-                    final item = provider.itemRates[index];
-                    return StockCard(
+        ),
+        Expanded(
+          child: Consumer<StockProvider>(
+            builder: (context, provider, child) {
+              if (provider.isLoading && provider.itemRates.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: provider.itemRates.length,
+                itemBuilder: (context, index) {
+                  final item = provider.itemRates[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: StockCard(
                       title: item.item ?? 'Unnamed',
                       subtitle: 'Reseller: ${item.reseller} | Sale: ${item.sale}',
                       icon: Icons.price_change,
                       trailing: item.category,
-                      onEdit: canUpdate ? () => _showForm(item) : null,
-                      onDelete: canDelete ? () => provider.deleteItemRate(item.id!) : null,
-                    );
-                  },
-                );
-              },
-            ),
+                      onTap: canUpdate ? () => _showForm(item) : null,
+                    ),
+                  );
+                },
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -197,6 +199,13 @@ class _ItemRateFormDialogState extends State<ItemRateFormDialog> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StockProvider>(context);
+    final acp = Provider.of<AccessControlProvider>(context);
+    final canDelete = acp.canDelete(PermissionKeys.itemRate);
+    final canUpdate = acp.canUpdate(PermissionKeys.itemRate);
+    final canCreate = acp.canCreate(PermissionKeys.itemRate);
+
+    final bool isEdit = widget.itemRate != null;
+    final bool hasPermission = isEdit ? canUpdate : canCreate;
     
     return AlertDialog(
       title: Text(widget.itemRate == null ? 'Add Item Rate' : 'Edit Item Rate'),
@@ -295,10 +304,34 @@ class _ItemRateFormDialogState extends State<ItemRateFormDialog> {
         ),
       ),
       actions: [
+        if (isEdit && canDelete)
+          IconButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirm Delete'),
+                  content: Text('Are you sure you want to delete rate for "${widget.itemRate!.item}"?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () {
+                        provider.deleteItemRate(widget.itemRate!.id!);
+                        Navigator.pop(context); // Close confirm
+                        Navigator.pop(context); // Close form
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+            },
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+          ),
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         AppButton(
-          text: 'Save',
-          onPressed: () async {
+          text: !hasPermission ? 'No Permission' : 'Save',
+          onPressed: hasPermission ? () async {
             if (_formKey.currentState!.validate()) {
               final data = {
                 'item': selectedItem,
@@ -317,7 +350,7 @@ class _ItemRateFormDialogState extends State<ItemRateFormDialog> {
                 Navigator.pop(context);
               }
             }
-          },
+          } : null,
         ),
       ],
     );

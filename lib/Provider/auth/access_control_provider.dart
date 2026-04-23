@@ -38,6 +38,7 @@ class AccessControlProvider with ChangeNotifier {
   bool canCreate(String resource) => can('$resource.CREATE');
   bool canUpdate(String resource) => can('$resource.UPDATE');
   bool canDelete(String resource) => can('$resource.DELETE');
+  bool canPrint(String resource) => can('$resource.PRINT');
 
   /// Refreshes permissions (e.g. after login or profile update)
   Future<void> refresh() async {

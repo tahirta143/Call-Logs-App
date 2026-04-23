@@ -9,7 +9,7 @@ import '../../../model/stock/item_model.dart';
 import '../../../constants/api_config.dart';
 import '../../compoents/app_button.dart';
 import '../../compoents/app_text_field.dart';
-import '../../helpers/permission_helper.dart';
+import '../../../constants/permission_keys.dart';
 import 'components/stock_card.dart';
 
 class ItemDefinitionScreen extends StatefulWidget {
@@ -36,83 +36,88 @@ class _ItemDefinitionScreenState extends State<ItemDefinitionScreen> {
   Widget build(BuildContext context) {
     final acp = Provider.of<AccessControlProvider>(context);
 
-    if (acp.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    const String resource = 'INVENTORY.ITEM_DEFINITION';
+    final String resource = PermissionKeys.itemDefinition;
     final bool canRead = acp.canRead(resource);
     final bool canCreate = acp.canCreate(resource);
     final bool canUpdate = acp.canUpdate(resource);
-    final bool canDelete = acp.canDelete(resource);
 
     if (!canRead) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Iconsax.shield_cross, size: 64, color: Colors.grey.shade400),
-              const SizedBox(height: 16),
-              const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text("You don't have permission to view items.", style: TextStyle(color: Colors.grey.shade600)),
-            ],
-          ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Iconsax.shield_cross, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text("You don't have permission to view items.", style: TextStyle(color: Colors.grey.shade600)),
+          ],
         ),
       );
     }
 
     final provider = Provider.of<StockProvider>(context);
 
-    return Scaffold(
-      body: Column(
-        children: [
-          // Search Header
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AppTextField(
-              controller: _searchController,
-              label: 'Search items...',
-              icon: Iconsax.search_normal,
-              onChanged: (v) => provider.fetchItems(search: v),
-            ),
-          ),
-          
-          // List
-          Expanded(
-            child: provider.isLoading && provider.items.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    onRefresh: () => provider.fetchItems(search: _searchController.text),
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: provider.items.length,
-                      itemBuilder: (context, index) {
-                        final item = provider.items[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: StockCard(
-                            title: item.itemName ?? 'N/A',
-                            subtitle: "Type: ${item.itemType ?? 'N/A'} | Cat: ${item.category ?? 'N/A'}",
-                            trailing: item.salePrice != null ? "Rs ${item.salePrice}" : null,
-                            icon: Iconsax.box,
-                            imageUrl: ApiConfig.getImageUrl(item.imageName),
-                            onEdit: canUpdate ? () => _openItemDialog(item) : null,
-                            onDelete: canDelete ? () => _confirmDelete(item) : null,
-                          ),
-                        );
-                      },
-                    ),
+    return Column(
+      children: [
+        // Search Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  controller: _searchController,
+                  label: 'Search items...',
+                  icon: Iconsax.search_normal,
+                  onChanged: (v) => provider.fetchItems(search: v),
+                ),
+              ),
+              if (canCreate) ...[
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: IconButton(
+                    onPressed: () => _openItemDialog(null),
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    tooltip: 'Add Item',
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: canCreate ? FloatingActionButton(
-        onPressed: () => _openItemDialog(null),
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
-      ) : null,
+        ),
+        
+        // List
+        Expanded(
+          child: provider.isLoading && provider.items.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: () => provider.fetchItems(search: _searchController.text),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    itemCount: provider.items.length,
+                    itemBuilder: (context, index) {
+                      final item = provider.items[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: StockCard(
+                          title: item.itemName ?? 'N/A',
+                          subtitle: "Type: ${item.itemType ?? 'N/A'} | Cat: ${item.category ?? 'N/A'}",
+                          trailing: item.salePrice != null ? "Rs ${item.salePrice}" : null,
+                          icon: Iconsax.box,
+                          imageUrl: ApiConfig.getImageUrl(item.imageName),
+                          onTap: canUpdate ? () => _openItemDialog(item) : null,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
@@ -224,6 +229,13 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StockProvider>(context);
+    final acp = Provider.of<AccessControlProvider>(context);
+    final canDelete = acp.canDelete(PermissionKeys.itemDefinition);
+    final canUpdate = acp.canUpdate(PermissionKeys.itemDefinition);
+    final canCreate = acp.canCreate(PermissionKeys.itemDefinition);
+    
+    final bool isEdit = widget.item != null;
+    final bool hasPermission = isEdit ? canUpdate : canCreate;
 
     // Filter subcategories based on selected category
     List<String> filteredSubCats = provider.subCategories
@@ -365,10 +377,36 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
             const SizedBox(height: 16),
             Row(
               children: [
+                if (isEdit && canDelete)
+                  IconButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Delete Item'),
+                          content: Text('Are you sure you want to delete "${widget.item!.itemName}"?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                            TextButton(
+                              onPressed: () {
+                                provider.deleteItem(widget.item!.id!);
+                                Navigator.pop(context); // Close confirm
+                                Navigator.pop(context); // Close form
+                              },
+                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Iconsax.trash, color: Colors.red),
+                  ),
                 Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Cancel'))),
+                const SizedBox(width: 12),
                 Expanded(
+                  flex: 2,
                   child: AppButton(
-                    onPressed: () async {
+                    onPressed: hasPermission ? () async {
                       if (!_formKey.currentState!.validate()) return;
                       final success = await provider.saveItem(
                         id: widget.item?.id,
@@ -399,8 +437,8 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
                       if (success) {
                         if (mounted) Navigator.pop(context);
                       }
-                    },
-                    title: provider.isLoading ? 'Saving...' : 'Save Item',
+                    } : null,
+                    title: !hasPermission ? 'No Permission' : (provider.isLoading ? 'Saving...' : 'Save Item'),
                   ),
                 ),
               ],

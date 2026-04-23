@@ -9,7 +9,8 @@ import '../../compoents/premium_card.dart';
 import '../../compoents/app_theme.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../Provider/staff/StaffProvider.dart';
-import '../../helpers/permission_helper.dart';
+import '../../Provider/auth/access_control_provider.dart';
+import '../../constants/permission_keys.dart';
 
 class StaffScreen extends StatefulWidget {
   const StaffScreen({super.key});
@@ -23,30 +24,18 @@ class _StaffScreenState extends State<StaffScreen> {
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
-  List<String> _userPermissions = [];
-  bool _canRead = true;
-  bool _canCreate = false;
-  bool _canUpdate = false;
-  bool _canDelete = false;
 
   @override
   void initState() {
     super.initState();
-    _initPermissions();
+    _fetchData();
+  }
+
+  void _fetchData() {
     Future.microtask(() =>
         Provider.of<StaffProvider>(context, listen: false).fetchStaff());
   }
 
-  Future<void> _initPermissions() async {
-    final perms = await PermissionHelper.getStoredPermissions();
-    setState(() {
-      _userPermissions = perms;
-      _canRead = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.READ', perms);
-      _canCreate = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.CREATE', perms);
-      _canUpdate = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.UPDATE', perms);
-      _canDelete = PermissionHelper.hasPermissionSync('EMPLOYEE.EMPLOYEE.DELETE', perms);
-    });
-  }
 
   @override
   void dispose() {
@@ -171,95 +160,82 @@ class _StaffScreenState extends State<StaffScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final acp = Provider.of<AccessControlProvider>(context);
+    
+    final canRead = acp.canRead(PermissionKeys.employee);
+    final canCreate = acp.canCreate(PermissionKeys.employee);
+    final canUpdate = acp.canUpdate(PermissionKeys.employee);
 
-    return Consumer<StaffProvider>(
-      builder: (context, staffProvider, child) {
-    // Check for Read permission
-    if (!_canRead) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Staff Management')),
-        body: const Center(
-          child: Text(
-            "You don't have permission to view staff.",
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
+    if (!canRead) {
+      return const Center(
+        child: Text(
+          "You don't have permission to view staff.",
+          style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
       );
     }
 
-    final filteredStaffs = _filteredStaffs(staffProvider);
+    return Consumer<StaffProvider>(
+      builder: (context, staffProvider, child) {
+        final filteredStaffs = _filteredStaffs(staffProvider);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Staff Management',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left_2),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(
-        children: [
-          PremiumActionHeader(
-            controller: _searchController,
-            onChanged: (value) => setState(() => _searchQuery = value),
-            onAddTap: () {
-              if (_canCreate) {
-                showDialog(
-                  context: context,
-                  builder: (context) => const StaffFormDialog(),
-                );
-              }
-            },
-            hintText: "Search staff members...",
-            showAdd: _canCreate,
-          ),
-          // Filter Chips Row
-          if (staffProvider.staffs.isNotEmpty)
-            Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _availableDepartments(staffProvider).map((dept) {
-                  final isSelected = _selectedFilter == dept;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(dept),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() => _selectedFilter = selected ? dept : 'All');
-                      },
-                      backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade100,
-                      selectedColor: AppTheme.primaryColor.withOpacity(0.2),
-                      labelStyle: TextStyle(
-                        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade600,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      side: BorderSide.none,
-                      showCheckmark: false,
-                    ),
+        return Column(
+          children: [
+            PremiumActionHeader(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              onAddTap: () {
+                if (canCreate) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => const StaffFormDialog(),
                   );
-                }).toList(),
-              ),
+                }
+              },
+              hintText: "Search staff members...",
+              showAdd: canCreate,
             ),
-          Expanded(
-            child: staffProvider.isLoading
-                ? _buildShimmerLoading()
-                : filteredStaffs.isEmpty
-                    ? _buildEmptyState(context, _searchQuery, _searchController)
-                    : _buildStaffList(context, filteredStaffs),
-          ),
-        ],
-      ),
-    );
-      }
+            // Filter Chips Row
+            if (staffProvider.staffs.isNotEmpty)
+              Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: _availableDepartments(staffProvider).map((dept) {
+                    final isSelected = _selectedFilter == dept;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(dept),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() => _selectedFilter = selected ? dept : 'All');
+                        },
+                        backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                        selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: isSelected ? AppTheme.primaryColor : Colors.grey.shade600,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        side: BorderSide.none,
+                        showCheckmark: false,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            Expanded(
+              child: staffProvider.isLoading
+                  ? _buildShimmerLoading()
+                  : filteredStaffs.isEmpty
+                      ? _buildEmptyState(context, _searchQuery, _searchController, canCreate)
+                      : _buildStaffList(context, filteredStaffs, canUpdate),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -284,7 +260,7 @@ class _StaffScreenState extends State<StaffScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, String searchQuery, TextEditingController searchController) {
+  Widget _buildEmptyState(BuildContext context, String searchQuery, TextEditingController searchController, bool canCreate) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
@@ -333,7 +309,7 @@ class _StaffScreenState extends State<StaffScreen> {
                 foregroundColor: isDarkMode ? Colors.white : Colors.grey[800],
               ),
             )
-          else if (_canCreate)
+          else if (canCreate)
             ElevatedButton.icon(
               onPressed: () {
                 showDialog(
@@ -349,7 +325,7 @@ class _StaffScreenState extends State<StaffScreen> {
     );
   }
 
-  Widget _buildStaffList(BuildContext context, List<StaffData> staffs) {
+  Widget _buildStaffList(BuildContext context, List<StaffData> staffs, bool canUpdate) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: staffs.length,
@@ -368,7 +344,12 @@ class _StaffScreenState extends State<StaffScreen> {
           child: PremiumCard(
             padding: const EdgeInsets.all(16),
             onTap: () {
-              // Staff detail
+              if (canUpdate) {
+                showDialog(
+                  context: context,
+                  builder: (context) => StaffFormDialog(staff: staff),
+                );
+              }
             },
             child: Row(
               children: [
@@ -416,41 +397,6 @@ class _StaffScreenState extends State<StaffScreen> {
                       ),
                     ],
                   ),
-                ),
-                // Actions
-                Column(
-                  children: [
-                    if (_canUpdate)
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => StaffFormDialog(staff: staff),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Iconsax.edit, size: 16, color: AppTheme.primaryColor),
-                      ),
-                    ),
-                    if (_canUpdate && _canDelete) const SizedBox(height: 12),
-                    if (_canDelete)
-                    GestureDetector(
-                      onTap: () => _showDeleteDialog(context, staff.id ?? '', staff.employeeName ?? 'Staff'),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Iconsax.trash, size: 16, color: Colors.red),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),

@@ -15,7 +15,8 @@ import '../../compoents/responsive_helper.dart';
 // import '../../compoents/premium_header.dart';
 import '../../compoents/premium_card.dart';
 import 'package:iconsax/iconsax.dart';
-import '../../helpers/permission_helper.dart';
+import '../../constants/permission_keys.dart';
+import '../bottombar/BottomBar.dart';
 import '../monthly chats.dart';
 import '../staff/staffListScreen.dart';
 
@@ -45,7 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final provider = Provider.of<DashBoardProvider>(context);
 
     if (acp.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Center(child: CircularProgressIndicator());
     }
 
     return provider.isLoading
@@ -212,11 +213,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'title': 'Staff',
         'count': provider.totalStaffs.toString(),
         'color': const Color(0xFF2196F3),
-        'onTap': acp.canRead('EMPLOYEE.EMPLOYEE')
-            ? () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const StaffScreen()),
-        )
+        'onTap': acp.canRead(PermissionKeys.employee)
+            ? () {
+                final bottomBar = context.findAncestorStateOfType<BottombarScreenState>();
+                if (bottomBar != null) {
+                  bottomBar.navigateToSubScreen(const StaffScreen(), 'Staff');
+                }
+              }
             : null,
       },
       {

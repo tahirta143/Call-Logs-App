@@ -8,6 +8,8 @@ import '../../Provider/staff/StaffProvider.dart';
 import '../../compoents/app_button.dart';
 import '../../compoents/app_text_field.dart';
 import '../../constants/api_config.dart';
+import '../../Provider/auth/access_control_provider.dart';
+import '../../constants/permission_keys.dart';
 
 class StaffFormDialog extends StatefulWidget {
   final StaffData? staff;
@@ -163,6 +165,8 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final provider = Provider.of<StaffProvider>(context);
+    final acp = Provider.of<AccessControlProvider>(context);
+    final canDelete = acp.canDelete(PermissionKeys.employee);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
@@ -316,6 +320,12 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
             const SizedBox(height: 16),
             Row(
               children: [
+                if (widget.staff != null && canDelete)
+                  IconButton(
+                    onPressed: () => _showDeleteConfirmation(context, provider),
+                    icon: const Icon(Iconsax.trash, color: Colors.red),
+                    tooltip: 'Delete Staff',
+                  ),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
@@ -328,6 +338,7 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
+                  flex: 2,
                   child: AppButton(
                     press: provider.isLoading ? () {} : _submit,
                     title: provider.isLoading ? 'Saving...' : (widget.staff == null ? 'Add Staff' : 'Save Changes'),
@@ -352,6 +363,29 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
           color: AppTheme.primaryColor.withOpacity(0.8),
           letterSpacing: 0.5,
         ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, StaffProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete ${widget.staff!.employeeName}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close confirmation
+              final success = await provider.DeleteStaff(widget.staff!.id!);
+              if (success && mounted) {
+                Navigator.pop(context); // Close form
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

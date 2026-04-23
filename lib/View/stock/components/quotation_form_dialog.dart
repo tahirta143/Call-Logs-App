@@ -7,6 +7,8 @@ import '../../../compoents/app_theme.dart';
 import '../../../compoents/searchable_select.dart';
 import '../../../model/stock/stock_models.dart';
 import '../../../model/stock/service_model.dart';
+import '../../../Provider/auth/access_control_provider.dart';
+import '../../../constants/permission_keys.dart';
 
 // ─────────────────────────────────────────────
 // Row model for items added inside the dialog
@@ -448,7 +450,16 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
   @override
   Widget build(BuildContext context) {
     final sp = Provider.of<StockProvider>(context);
+    final acp = Provider.of<AccessControlProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final canDelete = acp.canDelete(PermissionKeys.quotation);
+    final canUpdate = acp.canUpdate(PermissionKeys.quotation);
+    final canCreate = acp.canCreate(PermissionKeys.quotation);
+
+    final bool isEdit = _isEditMode || _isRevisionMode;
+    final bool hasPermission = isEdit ? canUpdate : canCreate;
+
     final bg = isDark ? const Color(0xFF121212) : Colors.white;
     final sectionBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FB);
     final borderColor = isDark ? Colors.grey[800]! : const Color(0xFFE2E8F0);
@@ -497,7 +508,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
                   ),
                 ),
               ),
-            _buildFooter(sp, borderColor),
+            _buildFooter(sp, borderColor, canDelete, hasPermission),
           ],
         ),
       ),
@@ -509,11 +520,17 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF252525), Color(0xFF1A1A1A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppTheme.primaryGradient,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.2),
+            color: isDark ? Colors.black26 : AppTheme.primaryColor.withOpacity(0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -805,11 +822,12 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
           // Rows
           ...List.generate(_rows.length, (i) {
             final row = _rows[i];
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: i.isEven ? Colors.white : sectionBg,
+                color: i.isEven ? (isDark ? Colors.white.withOpacity(0.03) : Colors.white) : sectionBg,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: borderColor),
               ),
@@ -880,7 +898,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
   }
 
   // ── Footer
-  Widget _buildFooter(StockProvider sp, Color borderColor) {
+  Widget _buildFooter(StockProvider sp, Color borderColor, bool canDelete, bool hasPermission) {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
 
@@ -892,6 +910,33 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          if (_isEditMode && _editingId != null && canDelete)
+            IconButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Confirm Delete'),
+                    content: const Text('Are you sure you want to delete this quotation?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () async {
+                          final success = await sp.deleteQuotation(_editingId!);
+                          if (mounted) {
+                            Navigator.pop(context); // Close confirm
+                            if (success) Navigator.pop(context); // Close form
+                          }
+                        },
+                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+            ),
+          const Spacer(),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
@@ -899,7 +944,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
           SizedBox(width: isMobile ? 8 : 12),
           Flexible(
             child: ElevatedButton.icon(
-              onPressed: _isSaving ? null : () => _save(sp),
+              onPressed: (_isSaving || !hasPermission) ? null : () => _save(sp),
               icon: _isSaving
                   ? const SizedBox(
                       width: 18,
@@ -910,11 +955,13 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
               label: Text(
                 _isSaving
                     ? 'Saving...'
-                    : _isRevisionMode
-                        ? 'Save Revision'
-                        : _isEditMode
-                            ? 'Update'
-                            : 'Save',
+                    : !hasPermission
+                        ? 'No Permission'
+                        : _isRevisionMode
+                            ? 'Save Revision'
+                            : _isEditMode
+                                ? 'Update'
+                                : 'Save',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -946,6 +993,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     required String subtitle,
     required Widget child,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: AppTheme.premiumCardDecoration(context, color: sectionBg),
       child: Column(
@@ -970,23 +1018,23 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11, 
                             fontWeight: FontWeight.w800, 
                             letterSpacing: 1.2,
-                            color: AppTheme.accentColor,
+                            color: isDark ? Theme.of(context).colorScheme.secondary : AppTheme.accentColor,
                           )),
                       Text(subtitle, 
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 11, color: Colors.blueGrey[400])),
+                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.blueGrey[400])),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: AppTheme.primaryColor.withOpacity(0.05)),
+          Divider(height: 1, color: isDark ? Colors.white10 : AppTheme.primaryColor.withOpacity(0.05)),
           Padding(
             padding: const EdgeInsets.all(16),
             child: child,
@@ -997,6 +1045,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
   }
 
   Widget _readOnlyField(String label, String value, {String? hint}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1006,16 +1055,18 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: isDark ? Colors.black26 : Colors.grey[100],
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: isDark ? Colors.white12 : Colors.grey[300]!),
           ),
           alignment: Alignment.centerLeft,
           child: Text(
             value.isNotEmpty ? value : (hint ?? ''),
             style: TextStyle(
               fontSize: 14,
-              color: value.isNotEmpty ? Colors.black87 : Colors.grey[400],
+              color: value.isNotEmpty 
+                ? (isDark ? Colors.white : Colors.black87) 
+                : Colors.grey[400],
             ),
           ),
         ),
@@ -1024,6 +1075,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
   }
 
   Widget _datePicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1043,19 +1095,19 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? Colors.black26 : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: isDark ? Colors.white12 : Colors.grey[300]!),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     '${quotationDate.year}-${quotationDate.month.toString().padLeft(2, '0')}-${quotationDate.day.toString().padLeft(2, '0')}',
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
                   ),
                 ),
-                Icon(Iconsax.calendar_1, size: 18, color: Colors.grey[500]),
+                Icon(Iconsax.calendar_1, size: 18, color: isDark ? Colors.white54 : Colors.grey[500]),
               ],
             ),
           ),
@@ -1074,6 +1126,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1085,18 +1138,19 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
           onEditingComplete: onEditingComplete,
           keyboardType: keyboardType,
           maxLines: maxLines,
+          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: isDark ? Colors.black26 : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey[300]!),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey[300]!),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -1115,6 +1169,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     required List<String> options,
     required ValueChanged<String?> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1123,16 +1178,17 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? Colors.black26 : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: isDark ? Colors.white12 : Colors.grey[300]!),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: options.contains(value) ? value : null,
               isExpanded: true,
+              dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               hint: Text('Select', style: TextStyle(color: Colors.grey[400])),
-              items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 14)))).toList(),
+              items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87)))).toList(),
               onChanged: onChanged,
             ),
           ),
@@ -1142,6 +1198,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
   }
 
   Widget _fieldLabel(String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Text(
@@ -1150,7 +1207,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
           fontSize: 10,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.5,
-          color: Colors.grey[600],
+          color: isDark ? Colors.white54 : Colors.grey[600],
         ),
       ),
     );

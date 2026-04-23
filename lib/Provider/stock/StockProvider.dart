@@ -191,7 +191,7 @@ class StockProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteItem(String id) async {
+  Future<bool> deleteItem(String id) async {
     isLoading = true;
     notifyListeners();
     try {
@@ -199,12 +199,15 @@ class StockProvider with ChangeNotifier {
       final response = await http.delete(Uri.parse("${ApiConfig.itemDefinitionsUrl}/$id"), headers: headers);
       if (response.statusCode == 200) {
         await fetchItems();
+        return true;
       }
     } catch (e) {
       if (kDebugMode) print("StockProvider Error (deleteItem): $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
+    return false;
   }
 
   // --- SERVICES & PRODUCTS ---
@@ -259,7 +262,7 @@ class StockProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteService(String id) async {
+  Future<bool> deleteService(String id) async {
     isLoading = true;
     notifyListeners();
     try {
@@ -267,12 +270,15 @@ class StockProvider with ChangeNotifier {
       final response = await http.delete(Uri.parse("${ApiConfig.servicesUrl}/$id"), headers: headers);
       if (response.statusCode == 200) {
         await fetchServices();
+        return true;
       }
     } catch (e) {
       if (kDebugMode) print("StockProvider Error (deleteService): $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
+    return false;
   }
 
   // --- OPENING STOCK ---
@@ -369,18 +375,23 @@ class StockProvider with ChangeNotifier {
     return false;
   }
 
-  Future<void> deleteItemRate(String id) async {
+  Future<bool> deleteItemRate(String id) async {
     isLoading = true;
     notifyListeners();
     try {
       final headers = await ApiService.authHeader();
       final response = await http.delete(Uri.parse("${ApiConfig.itemRatesUrl}/$id"), headers: headers);
-      if (response.statusCode == 200) await fetchItemRates();
+      if (response.statusCode == 200) {
+        await fetchItemRates();
+        return true;
+      }
     } catch (e) {
       if (kDebugMode) print("DeleteRate Error: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
+    return false;
   }
 
   // --- QUOTATIONS ---
@@ -522,18 +533,23 @@ class StockProvider with ChangeNotifier {
     return null;
   }
 
-  Future<void> deleteQuotation(String id) async {
+  Future<bool> deleteQuotation(String id) async {
     isLoading = true;
     notifyListeners();
     try {
       final headers = await ApiService.authHeader();
       final response = await http.delete(Uri.parse("${ApiConfig.quotationsUrl}/$id"), headers: headers);
-      if (response.statusCode == 200) await fetchQuotations();
+      if (response.statusCode == 200) {
+        await fetchQuotations();
+        return true;
+      }
     } catch (e) {
       if (kDebugMode) print("DeleteQuotation Error: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
+    return false;
   }
 
   // --- ESTIMATIONS ---
@@ -581,18 +597,23 @@ class StockProvider with ChangeNotifier {
     return false;
   }
 
-  Future<void> deleteEstimation(String id) async {
+  Future<bool> deleteEstimation(String id) async {
     isLoading = true;
     notifyListeners();
     try {
       final headers = await ApiService.authHeader();
       final response = await http.delete(Uri.parse("${ApiConfig.estimationsUrl}/$id"), headers: headers);
-      if (response.statusCode == 200) await fetchEstimations();
+      if (response.statusCode == 200) {
+        await fetchEstimations();
+        return true;
+      }
     } catch (e) {
       if (kDebugMode) print("DeleteEstimation Error: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
+    return false;
   }
 
   Future<void> fetchUsdRate() async {

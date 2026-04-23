@@ -5,8 +5,8 @@ import '../../Provider/stock/StockProvider.dart';
 import '../../compoents/premium_card.dart';
 import '../../compoents/app_theme.dart';
 import '../../compoents/app_text_field.dart';
-import '../../helpers/permission_helper.dart';
 import '../../compoents/app_button.dart';
+import '../../constants/permission_keys.dart';
 import '../../constants/api_config.dart';
 import '../../model/stock/stock_models.dart';
 
@@ -46,89 +46,72 @@ class _OpeningStockScreenState extends State<OpeningStockScreen> {
   Widget build(BuildContext context) {
     final acp = Provider.of<AccessControlProvider>(context);
 
-    if (acp.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    const String resource = 'INVENTORY.OPENING_STOCK';
+    final String resource = PermissionKeys.openingStock;
     final bool canRead = acp.canRead(resource);
     final bool canUpdate = acp.canUpdate(resource);
 
     if (!canRead) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Opening Stock')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text("You don't have permission to view opening stock.", style: TextStyle(color: Colors.grey.shade600)),
-            ],
-          ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text("You don't have permission to view opening stock.", style: TextStyle(color: Colors.grey.shade600)),
+          ],
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Opening Stock'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _onFilter,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filters
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: PremiumCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  AppTextField(
-                    label: 'Search Item',
-                    controller: _searchController,
-                    prefixIcon: Icons.search,
-                    onChanged: (v) => _onFilter(),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDropdown(
-                          'Type',
-                          selectedType,
-                          Provider.of<StockProvider>(context).itemTypes,
-                          (v) {
-                            setState(() => selectedType = v);
-                            _onFilter();
-                          },
-                        ),
+    return Column(
+      children: [
+        // Filters
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: PremiumCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                AppTextField(
+                  label: 'Search Item',
+                  controller: _searchController,
+                  prefixIcon: Icons.search,
+                  onChanged: (v) => _onFilter(),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDropdown(
+                        'Type',
+                        selectedType,
+                        Provider.of<StockProvider>(context).itemTypes,
+                        (v) {
+                          setState(() => selectedType = v);
+                          _onFilter();
+                        },
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDropdown(
-                          'Category',
-                          selectedCategory,
-                          Provider.of<StockProvider>(context).categories,
-                          (v) {
-                            setState(() => selectedCategory = v);
-                            _onFilter();
-                          },
-                        ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildDropdown(
+                        'Category',
+                        selectedCategory,
+                        Provider.of<StockProvider>(context).categories,
+                        (v) {
+                          setState(() => selectedCategory = v);
+                          _onFilter();
+                        },
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
+        ),
 
           // List
           Expanded(
@@ -141,7 +124,7 @@ class _OpeningStockScreenState extends State<OpeningStockScreen> {
                   return const Center(child: Text('No items found.'));
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   itemCount: provider.openingStock.length,
                   itemBuilder: (context, index) {
                     final item = provider.openingStock[index];
@@ -152,8 +135,7 @@ class _OpeningStockScreenState extends State<OpeningStockScreen> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildDropdown(String label, String? value, List<String> options, ValueChanged<String?> onChanged) {
@@ -227,79 +209,135 @@ class _OpeningStockCardState extends State<OpeningStockCard> {
     }
   }
 
+  void _openEditDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => OpeningStockFormDialog(item: widget.item),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PremiumCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: widget.canUpdate ? _openEditDialog : null,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: widget.item.imageName != null
-                    ? Image.network(ApiConfig.getImageUrl(widget.item.imageName!), errorBuilder: (_, __, ___) => const Icon(Icons.inventory_2))
-                    : const Icon(Icons.inventory_2, color: AppTheme.primaryColor),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: widget.item.imageName != null
+                ? Image.network(ApiConfig.getImageUrl(widget.item.imageName!), errorBuilder: (_, __, ___) => const Icon(Icons.inventory_2))
+                : const Icon(Icons.inventory_2, color: AppTheme.primaryColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.item.itemName ?? 'Unnamed Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 2),
+                Text('${widget.item.category} > ${widget.item.subCategory}', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                const SizedBox(height: 4),
+                Row(
                   children: [
-                    Text(widget.item.itemName ?? 'Unnamed Item', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text('${widget.item.category} > ${widget.item.subCategory}', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                    _smallInfo('Pur: ${widget.item.purchasePrice}', Colors.blue),
+                    const SizedBox(width: 8),
+                    _smallInfo('Sale: ${widget.item.salePrice}', Colors.green),
+                    const SizedBox(width: 8),
+                    _smallInfo('Stock: ${widget.item.stock}', Colors.orange),
                   ],
                 ),
-              ),
-              if (widget.canUpdate) 
-                isSaving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : IconButton(
-                        icon: const Icon(Icons.save, color: AppTheme.primaryColor),
-                        onPressed: _handleSave,
-                      ),
-            ],
+              ],
+            ),
           ),
-          const Divider(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  label: 'Pur. Price',
-                  controller: _purchaseController,
-                  keyboardType: TextInputType.number,
-                  readOnly: !widget.canUpdate,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: AppTextField(
-                  label: 'Sale Price',
-                  controller: _saleController,
-                  keyboardType: TextInputType.number,
-                  readOnly: !widget.canUpdate,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: AppTextField(
-                  label: 'Stock',
-                  controller: _stockController,
-                  keyboardType: TextInputType.number,
-                  readOnly: !widget.canUpdate,
-                ),
-              ),
-            ],
-          ),
+          if (widget.canUpdate)
+            const Icon(Icons.edit_note, color: AppTheme.primaryColor),
         ],
       ),
+    );
+  }
+
+  Widget _smallInfo(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(text, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class OpeningStockFormDialog extends StatefulWidget {
+  final OpeningStockData item;
+  const OpeningStockFormDialog({super.key, required this.item});
+
+  @override
+  State<OpeningStockFormDialog> createState() => _OpeningStockFormDialogState();
+}
+
+class _OpeningStockFormDialogState extends State<OpeningStockFormDialog> {
+  late TextEditingController _purchaseController;
+  late TextEditingController _saleController;
+  late TextEditingController _stockController;
+  bool isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _purchaseController = TextEditingController(text: widget.item.purchasePrice ?? '');
+    _saleController = TextEditingController(text: widget.item.salePrice ?? '');
+    _stockController = TextEditingController(text: widget.item.stock ?? '');
+  }
+
+  Future<void> _handleSave() async {
+    setState(() => isSaving = true);
+    final provider = Provider.of<StockProvider>(context, listen: false);
+    final success = await provider.updateOpeningStock(widget.item.id!, {
+      'purchase_price': _purchaseController.text,
+      'sale_price': _saleController.text,
+      'unit_qty': _stockController.text,
+    });
+    setState(() => isSaving = false);
+    if (success && mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Stock updated successfully'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final acp = Provider.of<AccessControlProvider>(context);
+    final canUpdate = acp.canUpdate(PermissionKeys.openingStock);
+
+    return AlertDialog(
+      title: Text('Edit Stock: ${widget.item.itemName}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppTextField(label: 'Purchase Price', controller: _purchaseController, keyboardType: TextInputType.number),
+          const SizedBox(height: 12),
+          AppTextField(label: 'Sale Price', controller: _saleController, keyboardType: TextInputType.number),
+          const SizedBox(height: 12),
+          AppTextField(label: 'Unit Quantity', controller: _stockController, keyboardType: TextInputType.number),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        AppButton(
+          text: !canUpdate ? 'No Permission' : (isSaving ? 'Saving...' : 'Save Changes'),
+          onPressed: (isSaving || !canUpdate) ? null : _handleSave,
+        ),
+      ],
     );
   }
 }

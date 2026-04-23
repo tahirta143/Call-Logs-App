@@ -7,7 +7,7 @@ import '../../../compoents/app_theme.dart';
 import '../../../model/stock/service_model.dart';
 import '../../compoents/app_button.dart';
 import '../../compoents/app_text_field.dart';
-import '../../helpers/permission_helper.dart';
+import '../../../constants/permission_keys.dart';
 import 'components/stock_card.dart';
 
 class ServicesProductsScreen extends StatefulWidget {
@@ -33,81 +33,71 @@ class _ServicesProductsScreenState extends State<ServicesProductsScreen> {
     final acp = Provider.of<AccessControlProvider>(context);
 
     if (acp.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Center(child: CircularProgressIndicator());
     }
 
-    const String resource = 'SERVICES.SERVICE';
+    final String resource = PermissionKeys.service;
     final bool canRead = acp.canRead(resource);
     final bool canCreate = acp.canCreate(resource);
     final bool canUpdate = acp.canUpdate(resource);
     final bool canDelete = acp.canDelete(resource);
 
     if (!canRead) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Iconsax.shield_cross, size: 64, color: Colors.grey.shade400),
-              const SizedBox(height: 16),
-              const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text("You don't have permission to view services.", style: TextStyle(color: Colors.grey.shade600)),
-            ],
-          ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Iconsax.shield_cross, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text("You don't have permission to view services.", style: TextStyle(color: Colors.grey.shade600)),
+          ],
         ),
       );
     }
 
     final provider = Provider.of<StockProvider>(context);
 
-    return Scaffold(
-      body: Column(
-        children: [
-          // Search Header
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AppTextField(
-              controller: _searchController,
-              label: 'Search services...',
-              icon: Iconsax.search_normal,
-              onChanged: (v) => provider.fetchServices(search: v),
-            ),
+    return Column(
+      children: [
+        // Search Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: AppTextField(
+            controller: _searchController,
+            label: 'Search services...',
+            icon: Iconsax.search_normal,
+            onChanged: (v) => provider.fetchServices(search: v),
           ),
-          
-          // List
-          Expanded(
-            child: provider.isLoading && provider.services.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    onRefresh: () => provider.fetchServices(search: _searchController.text),
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: provider.services.length,
-                      itemBuilder: (context, index) {
-                        final service = provider.services[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: StockCard(
-                            title: service.serviceName ?? 'N/A',
-                            subtitle: "Duration: ${service.durationTime ?? '0'} min",
-                            trailing: "Rs ${service.rate ?? '0'}",
-                            icon: Iconsax.box,
-                             onEdit: canUpdate ? () => _openServiceDialog(service) : null,
-                             onDelete: canDelete ? () => _confirmDelete(service) : null,
-                           ),
-                         );
-                       },
-                    ),
+        ),
+        
+        // List
+        Expanded(
+          child: provider.isLoading && provider.services.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: () => provider.fetchServices(search: _searchController.text),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    itemCount: provider.services.length,
+                    itemBuilder: (context, index) {
+                      final service = provider.services[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: StockCard(
+                          title: service.serviceName ?? 'N/A',
+                          subtitle: "Duration: ${service.durationTime ?? '0'} min",
+                          trailing: "Rs ${service.rate ?? '0'}",
+                          icon: Iconsax.box,
+                          onTap: canUpdate ? () => _openServiceDialog(service) : null,
+                        ),
+                      );
+                    },
                   ),
-          ),
-        ],
-      ),
-       floatingActionButton: canCreate ? FloatingActionButton(
-        onPressed: () => _openServiceDialog(null),
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
-      ) : null,
+                ),
+        ),
+      ],
     );
   }
 
@@ -175,6 +165,12 @@ class _ServiceFormDialogState extends State<_ServiceFormDialog> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<StockProvider>(context);
+    final acp = Provider.of<AccessControlProvider>(context);
+    final canUpdate = acp.canUpdate(PermissionKeys.service);
+    final canCreate = acp.canCreate(PermissionKeys.service);
+
+    final bool isEdit = widget.service != null;
+    final bool hasPermission = isEdit ? canUpdate : canCreate;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -245,7 +241,7 @@ class _ServiceFormDialogState extends State<_ServiceFormDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: AppButton(
-                      press: () async {
+                      press: hasPermission ? () async {
                         if (!_formKey.currentState!.validate()) return;
                         final success = await provider.saveService(
                           id: widget.service?.id,
@@ -259,8 +255,8 @@ class _ServiceFormDialogState extends State<_ServiceFormDialog> {
                         if (success) {
                           if (mounted) Navigator.pop(context);
                         }
-                      },
-                      title: provider.isLoading ? 'Saving...' : 'Save',
+                      } : null,
+                      title: !hasPermission ? 'No Permission' : (provider.isLoading ? 'Saving...' : 'Save'),
                     ),
                   ),
                 ],

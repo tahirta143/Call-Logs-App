@@ -57,7 +57,7 @@ class StaffProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> DeleteStaff(String staffId) async {
+  Future<bool> DeleteStaff(String staffId) async {
     isLoading = true;
     notifyListeners();
     try {
@@ -68,17 +68,16 @@ class StaffProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
         await fetchStaff();
-        print('✅ employee deleted successfully: $data');
-      } else {
-        print('❌ Failed to delete employee. Status: ${response.statusCode}');
+        return true;
       }
     } catch (e) {
-      print('⚠️ Error deleting employee: $e');
+      if (kDebugMode) print('⚠️ Error deleting employee: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-    isLoading = false;
-    notifyListeners();
+    return false;
   }
 
   Future<bool> uploadStaff({
