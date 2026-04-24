@@ -45,10 +45,10 @@ Future<void> showQuotationFormDialog(
   BuildContext context, {
   QuotationData? quotation,
 }) {
-  return showDialog(
+  return AppTheme.showAnimatedDialog(
     context: context,
     barrierDismissible: false,
-    builder: (_) => QuotationFormDialog(quotation: quotation),
+    child: QuotationFormDialog(quotation: quotation),
   );
 }
 
@@ -468,7 +468,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Container(
         width: double.infinity,
         constraints: BoxConstraints(
@@ -494,7 +494,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
             else
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
                       _buildSetupSection(sp, sectionBg, borderColor),
@@ -639,6 +639,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
             value: selectedCompany,
             options: companyOptions,
             onChanged: (v) => _onCompanyChanged(v ?? '', sp),
+            isRequired: true,
           ),
           const SizedBox(height: 14),
           Row(
@@ -660,6 +661,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
                   value: selectedLetterType,
                   options: _letterTypes,
                   onChanged: (v) => _onLetterTypeChanged(v ?? '', sp),
+                  isRequired: true,
                 ),
               ),
             ],
@@ -681,21 +683,18 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
   }
 
   Widget _buildTaxModeRow() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Text(
-        //   'TAX MODE',
-        //   style: TextStyle(
-        //     fontSize: 10,
-        //     fontWeight: FontWeight.bold,
-        //     letterSpacing: 1.6,
-        //     color: Colors.grey[600],
-        //   ),
-        // ),
-        const SizedBox(width: 20),
-        _radio('Without Tax', 'withoutTax'),
-        const SizedBox(width: 20),
-        _radio('With Tax', 'withTax'),
+        _fieldLabel('Tax Mode', isRequired: true),
+        Row(
+          children: [
+            const SizedBox(width: 8),
+            _radio('Without Tax', 'withoutTax'),
+            const SizedBox(width: 20),
+            _radio('With Tax', 'withTax'),
+          ],
+        ),
       ],
     );
   }
@@ -732,6 +731,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
             value: selectedItem,
             options: itemOptions,
             onChanged: (v) => _onItemChanged(v ?? '', sp),
+            isRequired: true,
           ),
           const SizedBox(height: 14),
           Row(
@@ -753,6 +753,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
                   hint: '0',
                   keyboardType: TextInputType.number,
                   onChanged: (_) => setState(() {}),
+                  isRequired: true,
                 ),
               ),
               const SizedBox(width: 12),
@@ -876,8 +877,11 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
               color: AppTheme.primaryColor.withOpacity(0.06),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 Text('Total Qty: ${_totalQty.toStringAsFixed(2)}',
                     style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -1079,7 +1083,7 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _fieldLabel('Date'),
+        _fieldLabel('Date', isRequired: true),
         GestureDetector(
           onTap: () async {
             final picked = await showDatePicker(
@@ -1125,12 +1129,13 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     String? hint,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _fieldLabel(label),
+        _fieldLabel(label, isRequired: isRequired),
         TextFormField(
           controller: controller,
           initialValue: controller == null ? initialValue : null,
@@ -1168,12 +1173,13 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     required String? value,
     required List<String> options,
     required ValueChanged<String?> onChanged,
+    bool isRequired = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _fieldLabel(label),
+        _fieldLabel(label, isRequired: isRequired),
         Container(
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1197,17 +1203,26 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     );
   }
 
-  Widget _fieldLabel(String label) {
+  Widget _fieldLabel(String label, {bool isRequired = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 6),
-      child: Text(
-        label.toUpperCase(),
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.5,
-          color: isDark ? Colors.white54 : Colors.grey[600],
+      child: RichText(
+        text: TextSpan(
+          text: label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: isDark ? Colors.white54 : Colors.grey[600],
+          ),
+          children: [
+            if (isRequired)
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+          ],
         ),
       ),
     );

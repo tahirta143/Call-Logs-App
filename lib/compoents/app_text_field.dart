@@ -15,6 +15,9 @@ class AppTextField extends StatefulWidget {
   final bool readOnly;
   final bool filled;
   final int? maxLines;
+  final VoidCallback? onTap;
+
+  final bool isRequired;
 
   const AppTextField({
     super.key,
@@ -31,6 +34,8 @@ class AppTextField extends StatefulWidget {
     this.readOnly = false,
     this.filled = true,
     this.maxLines = 1,
+    this.isRequired = false,
+    this.onTap,
   });
 
   @override
@@ -53,11 +58,23 @@ class _AppTextFieldState extends State<AppTextField> {
         onChanged: widget.onChanged,
         readOnly: widget.readOnly,
         maxLines: widget.maxLines,
+        onTap: widget.onTap,
         style: TextStyle(
           color: theme.colorScheme.onSurface,
           fontSize: 16,
         ),
         decoration: InputDecoration(
+          label: widget.isRequired 
+            ? RichText(
+                text: TextSpan(
+                  text: widget.label,
+                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14),
+                  children: const [
+                    TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            : Text(widget.label, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 14)),
           hintText: widget.label,
           hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
           prefixIcon: effectiveIcon != null 

@@ -1,11 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:infinity/compoents/app_theme.dart';
 import 'package:infinity/model/staff_model/staffModel.dart';
 import 'package:provider/provider.dart';
 import '../../Provider/staff/StaffProvider.dart';
-import '../../compoents/app_button.dart';
 import '../../compoents/app_text_field.dart';
 import '../../constants/api_config.dart';
 import '../../Provider/auth/access_control_provider.dart';
@@ -38,12 +36,21 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
   late TextEditingController accountController;
   late TextEditingController hiringDateController;
   late TextEditingController dobController;
+  late TextEditingController softwareUsernameController;
+  late TextEditingController softwarePasswordController;
+  late TextEditingController confirmPasswordController;
 
   String? selectedGender;
   String? selectedEmployeeType;
   String? selectedShift;
   String? selectedBloodGroup;
+  String? selectedDept;
+  String? selectedDesig;
+  String? selectedBank;
   bool isEnabled = true;
+  bool createSoftwareUser = false;
+  bool obscurePassword = true;
+  bool obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -72,12 +79,23 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
     accountController = TextEditingController(text: s?.accountNumber ?? '');
     hiringDateController = TextEditingController(text: s?.hiringDate ?? '');
     dobController = TextEditingController(text: s?.dateOfBirth ?? '');
+    softwareUsernameController = TextEditingController(text: s?.softwareUsername ?? '');
+    softwarePasswordController = TextEditingController();
+    confirmPasswordController = TextEditingController();
     
     selectedGender = s?.sex?.isNotEmpty == true ? s!.sex : 'Male';
-    selectedEmployeeType = s?.employeeType?.isNotEmpty == true ? s!.employeeType : 'Permanent';
-    selectedShift = s?.dutyShift?.isNotEmpty == true ? s!.dutyShift : 'Morning';
+    selectedEmployeeType = s?.employeeType;
+    selectedShift = s?.dutyShift;
     selectedBloodGroup = s?.bloodGroup;
+    selectedDept = s?.department;
+    selectedDesig = s?.designation;
+    selectedBank = s?.bank;
     isEnabled = s?.enabled ?? true;
+
+    // Load options
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<StaffProvider>(context, listen: false).loadSetupOptions();
+    });
   }
 
   @override
@@ -97,11 +115,21 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
     accountController.dispose();
     hiringDateController.dispose();
     dobController.dispose();
+    softwareUsernameController.dispose();
+    softwarePasswordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (createSoftwareUser) {
+      if (softwarePasswordController.text != confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.orange));
+        return;
+      }
+    }
 
     final provider = Provider.of<StaffProvider>(context, listen: false);
     
@@ -115,9 +143,9 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
       'address': addressController.text.trim(),
       'city': cityController.text.trim(),
       'qualification': qualificationController.text.trim(),
-      'department': deptController.text.trim(),
-      'designation': desigController.text.trim(),
-      'bank': bankController.text.trim(),
+      'department': selectedDept ?? deptController.text.trim(),
+      'designation': selectedDesig ?? desigController.text.trim(),
+      'bank': selectedBank ?? bankController.text.trim(),
       'account_number': accountController.text.trim(),
       'hiring_date': hiringDateController.text.trim(),
       'date_of_birth': dobController.text.trim(),
@@ -128,6 +156,12 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
       'enabled': isEnabled.toString(),
       'status': isEnabled ? 'active' : 'inactive',
     };
+
+    if (createSoftwareUser) {
+      data['software_username'] = softwareUsernameController.text.trim();
+      data['software_password'] = softwarePasswordController.text;
+      data['create_software_user'] = 'true';
+    }
 
     bool success;
     if (widget.staff == null) {
@@ -163,41 +197,70 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    final isDark = theme.brightness == Brightness.dark;
     final provider = Provider.of<StaffProvider>(context);
     final acp = Provider.of<AccessControlProvider>(context);
     final canDelete = acp.canDelete(PermissionKeys.employee);
+    final canUpdate = acp.canUpdate(PermissionKeys.employee);
+    final canCreate = acp.canCreate(PermissionKeys.employee);
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            // Header
-            Row(
-              children: [
-                Icon(widget.staff == null ? Iconsax.user_add : Iconsax.user_edit, color: AppTheme.primaryColor),
-                const SizedBox(width: 12),
-                Text(
-                  widget.staff == null ? 'Add New Staff' : 'Edit Staff Member',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 550, maxHeight: 750),
+        child: Container(
+          color: isDark ? const Color(0xFF121212) : Colors.white,
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[50],
+                  border: Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.grey[200]!)),
                 ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(widget.staff == null ? Iconsax.user_add : Iconsax.user_edit, color: AppTheme.primaryColor, size: 22),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.staff == null ? 'Add New Staff' : 'Edit Staff Member', 
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          Text(widget.staff == null ? 'Register a new employee in the system' : 'Update the existing employee profile',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.grey[600])),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: isDark ? Colors.white10 : Colors.grey[200],
+                        padding: const EdgeInsets.all(8),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const Divider(height: 32),
+              ),
             
             // Scrollable Content
             Expanded(
               child: Form(
                 key: _formKey,
                 child: ListView(
+                  padding: const EdgeInsets.all(24),
                   children: [
                     // Image Section
                     Center(
@@ -208,8 +271,8 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
                             height: 100,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppTheme.primaryColor.withOpacity(0.5), width: 2),
-                              color: isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                              border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.5), width: 2),
+                              color: isDark ? Colors.white10 : Colors.grey.shade100,
                             ),
                             child: ClipOval(
                               child: provider.selectedImage != null
@@ -238,15 +301,15 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
 
                     // Sections
                     _buildSectionTitle('Personal Information'),
-                    AppTextField(controller: nameController, label: 'Full Name', icon: Iconsax.user, validator: (v) => v!.isEmpty ? 'Required' : null),
+                    AppTextField(controller: nameController, label: 'Full Name', icon: Iconsax.user, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null),
                     const SizedBox(height: 16),
                     AppTextField(controller: fatherNameController, label: "Father's Name", icon: Iconsax.user_octagon),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: AppTextField(controller: cnicController, label: 'CNIC No', icon: Iconsax.personalcard)),
+                        Expanded(child: AppTextField(controller: cnicController, label: 'CNIC No', icon: Iconsax.personalcard, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildDropdown('Gender', ['Male', 'Female', 'Other'], selectedGender, (v) => setState(() => selectedGender = v))),
+                        Expanded(child: _buildDropdown('Gender', ['Male', 'Female', 'Other'], selectedGender, (v) => setState(() => selectedGender = v), isRequired: true)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -260,35 +323,45 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
                     
                     const SizedBox(height: 32),
                     _buildSectionTitle('Contact Details'),
-                    AppTextField(controller: emailController, label: 'Email', icon: Iconsax.sms, keyboardType: TextInputType.emailAddress),
+                    AppTextField(controller: emailController, label: 'Email', icon: Iconsax.sms, keyboardType: TextInputType.emailAddress, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null),
                     const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(child: AppTextField(controller: mobileController, label: 'Mobile', icon: Iconsax.mobile, keyboardType: TextInputType.phone)),
                         const SizedBox(width: 12),
-                        Expanded(child: AppTextField(controller: phoneController, label: 'Phone', icon: Iconsax.call, keyboardType: TextInputType.phone)),
+                        Expanded(child: AppTextField(controller: phoneController, label: 'Phone', icon: Iconsax.call, keyboardType: TextInputType.phone, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null)),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    AppTextField(controller: addressController, label: 'Address', icon: Iconsax.location),
+                    AppTextField(controller: addressController, label: 'Address', icon: Iconsax.location, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null),
                     const SizedBox(height: 16),
-                    AppTextField(controller: cityController, label: 'City', icon: Iconsax.buildings_2),
+                    AppTextField(controller: cityController, label: 'City', icon: Iconsax.buildings_2, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null),
 
                     const SizedBox(height: 32),
-                    _buildSectionTitle('Professional Details'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSectionTitle('Professional Details'),
+                        IconButton(
+                          icon: Icon(Iconsax.refresh, size: 18, color: AppTheme.primaryColor),
+                          onPressed: () => provider.loadSetupOptions(),
+                          tooltip: 'Reload options',
+                        ),
+                      ],
+                    ),
                     Row(
                       children: [
-                        Expanded(child: AppTextField(controller: deptController, label: 'Department', icon: Iconsax.category)),
+                        Expanded(child: _buildDropdown('Department', provider.departments.isEmpty ? ['Management', 'Sales', 'Technical', 'HR', 'Account'] : provider.departments, selectedDept, (v) => setState(() => selectedDept = v), isRequired: true)),
                         const SizedBox(width: 12),
-                        Expanded(child: AppTextField(controller: desigController, label: 'Designation', icon: Iconsax.briefcase)),
+                        Expanded(child: _buildDropdown('Designation', provider.designations.isEmpty ? ['Manager', 'Developer', 'Salesperson', 'Engineer', 'Clerk'] : provider.designations, selectedDesig, (v) => setState(() => selectedDesig = v), isRequired: true)),
                       ],
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: _buildDropdown('Employee Type', ['Permanent', 'Contract', 'Intern'], selectedEmployeeType, (v) => setState(() => selectedEmployeeType = v))),
+                        Expanded(child: _buildDropdown('Employee Type', provider.employeeTypes.isEmpty ? ['Permanent', 'Contract', 'Intern'] : provider.employeeTypes, selectedEmployeeType, (v) => setState(() => selectedEmployeeType = v), isRequired: true)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildDropdown('Duty Shift', ['Morning', 'Evening', 'Night'], selectedShift, (v) => setState(() => selectedShift = v))),
+                        Expanded(child: _buildDropdown('Duty Shift', provider.dutyShifts.isEmpty ? ['Morning', 'Evening', 'Night'] : provider.dutyShifts, selectedShift, (v) => setState(() => selectedShift = v), isRequired: true)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -296,11 +369,54 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
                     const SizedBox(height: 16),
                     AppTextField(controller: qualificationController, label: 'Qualification', icon: Iconsax.teacher),
 
-                    const SizedBox(height: 32),
-                    _buildSectionTitle('Banking Information'),
-                    AppTextField(controller: bankController, label: 'Bank Name', icon: Iconsax.bank),
-                    const SizedBox(height: 16),
-                    AppTextField(controller: accountController, label: 'Account Number', icon: Iconsax.card),
+                    _buildSectionTitle('Bank Info'),
+                    Row(
+                      children: [
+                        Expanded(child: _buildDropdown('Bank', provider.banks.isEmpty ? ['HBL', 'UBL', 'MCB', 'Allied Bank', 'Meezan Bank'] : provider.banks, selectedBank, (v) => setState(() => selectedBank = v), isRequired: true)),
+                        const SizedBox(width: 12),
+                        Expanded(child: AppTextField(controller: accountController, label: 'Account Number', icon: Iconsax.card, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null)),
+                      ],
+                    ),
+
+                    if (widget.staff == null) ...[
+                      const SizedBox(height: 32),
+                      _buildSectionTitle('Software Access'),
+                      CheckboxListTile(
+                        title: const Text('Create Software User', style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: const Text('Check this to create a login account for this staff'),
+                        value: createSoftwareUser,
+                        activeColor: AppTheme.primaryColor,
+                        onChanged: (v) => setState(() => createSoftwareUser = v ?? false),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (createSoftwareUser) ...[
+                        const SizedBox(height: 16),
+                        AppTextField(controller: softwareUsernameController, label: 'Username', icon: Iconsax.user, isRequired: true, validator: (v) => createSoftwareUser && v!.isEmpty ? 'Required' : null),
+                        const SizedBox(height: 16),
+                        AppTextField(
+                          controller: softwarePasswordController, 
+                          label: 'Password', 
+                          icon: Iconsax.key, 
+                          obscureText: obscurePassword, 
+                          icons: obscurePassword ? Iconsax.eye : Iconsax.eye_slash,
+                          onToggleVisibility: () => setState(() => obscurePassword = !obscurePassword),
+                          isRequired: true, 
+                          validator: (v) => createSoftwareUser && v!.isEmpty ? 'Required' : null
+                        ),
+                        const SizedBox(height: 16),
+                        AppTextField(
+                          controller: confirmPasswordController, 
+                          label: 'Confirm Password', 
+                          icon: Iconsax.key, 
+                          obscureText: obscureConfirmPassword, 
+                          icons: obscureConfirmPassword ? Iconsax.eye : Iconsax.eye_slash,
+                          onToggleVisibility: () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
+                          isRequired: true, 
+                          validator: (v) => createSoftwareUser && v!.isEmpty ? 'Required' : null
+                        ),
+                      ],
+                    ],
 
                     const SizedBox(height: 24),
                     SwitchListTile(
@@ -308,6 +424,7 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
                       subtitle: const Text('Allow this staff member to login'),
                       value: isEnabled,
                       activeColor: AppTheme.primaryColor,
+                      activeThumbColor: AppTheme.primaryColor,
                       onChanged: (v) => setState(() => isEnabled = v),
                     ),
                     const SizedBox(height: 24),
@@ -316,40 +433,52 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
               ),
             ),
             
-            // Footer Actions
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (widget.staff != null && canDelete)
-                  IconButton(
-                    onPressed: () => _showDeleteConfirmation(context, provider),
-                    icon: const Icon(Iconsax.trash, color: Colors.red),
-                    tooltip: 'Delete Staff',
-                  ),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+                border: Border(top: BorderSide(color: isDark ? Colors.white10 : Colors.grey[200]!)),
+              ),
+              child: Row(
+                children: [
+                  if (widget.staff != null && canDelete)
+                    IconButton(
+                      onPressed: provider.isLoading ? null : () => _showDeleteConfirmation(context, provider),
+                      icon: const Icon(Iconsax.trash, color: Colors.red, size: 20),
+                      tooltip: 'Delete Staff',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.withValues(alpha: 0.1),
+                        padding: const EdgeInsets.all(12),
+                      ),
                     ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
                     child: const Text('Cancel'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: AppButton(
-                    press: provider.isLoading ? () {} : _submit,
-                    title: provider.isLoading ? 'Saving...' : (widget.staff == null ? 'Add Staff' : 'Save Changes'),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: (widget.staff == null ? canCreate : canUpdate) && !provider.isLoading
+                        ? _submit
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(140, 48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    child: provider.isLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(widget.staff == null ? 'Create Staff' : 'Save Changes', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildSectionTitle(String title) {
@@ -360,7 +489,7 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: AppTheme.primaryColor.withOpacity(0.8),
+          color: AppTheme.primaryColor.withValues(alpha: 0.8),
           letterSpacing: 0.5,
         ),
       ),
@@ -368,9 +497,9 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
   }
 
   void _showDeleteConfirmation(BuildContext context, StaffProvider provider) {
-    showDialog(
+    AppTheme.showAnimatedDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      child: AlertDialog(
         title: const Text('Confirm Delete'),
         content: Text('Are you sure you want to delete ${widget.staff!.employeeName}?'),
         actions: [
@@ -390,11 +519,23 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
     );
   }
 
-  Widget _buildDropdown(String label, List<String> items, String? value, Function(String?) onChanged) {
+  Widget _buildDropdown(String label, List<String> items, String? value, Function(String?) onChanged, {bool isRequired = false}) {
+    final provider = Provider.of<StaffProvider>(context, listen: false);
+    final isLoading = provider.isSetupLoading && items.isEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+        Row(
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+            if (isRequired) const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
+            if (isLoading) ...[
+              const SizedBox(width: 8),
+              const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5)),
+            ],
+          ],
+        ),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -406,7 +547,7 @@ class _StaffFormDialogState extends State<StaffFormDialog> {
             child: DropdownButton<String>(
               value: items.contains(value) ? value : null,
               isExpanded: true,
-              hint: Text('Select $label', style: const TextStyle(fontSize: 13)),
+              hint: Text(isLoading ? 'Loading...' : 'Select $label', style: const TextStyle(fontSize: 13)),
               items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
               onChanged: onChanged,
             ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Provider/auth/access_control_provider.dart';
 import '../../Provider/theme/theme_provider.dart';
+import '../../compoents/app_theme.dart';
 import '../../compoents/responsive_helper.dart';
 import '../Auths/Login_screen.dart';
 import '../../helpers/permission_helper.dart';
@@ -53,7 +54,7 @@ class BottombarScreenState extends State<BottombarScreen> {
     List<Widget> screens = [const DashboardScreen()];
 
     if (acp.canRead(PermissionKeys.employee)) {
-      items.add(const _NavItem(icon: Icons.people_rounded, label: 'Staff'));
+      items.add(const _NavItem(icon: Icons.people_rounded, label: 'Employee'));
       screens.add(const StaffScreen());
     }
 
@@ -94,9 +95,9 @@ class BottombarScreenState extends State<BottombarScreen> {
 
   Future<void> _confirmLogout() async {
     Navigator.pop(context);
-    final shouldLogout = await showDialog<bool>(
+    final shouldLogout = await AppTheme.showAnimatedDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      child: AlertDialog(
         title: const Text('Confirm Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
@@ -142,9 +143,9 @@ class BottombarScreenState extends State<BottombarScreen> {
       setState(() => _selectedIndex = 0);
       return false;
     }
-    final shouldExit = await showDialog<bool>(
+    final shouldExit = await AppTheme.showAnimatedDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      child: AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Exit App'),
         content: const Text('Are you sure you want to exit the app?'),
@@ -204,7 +205,25 @@ class BottombarScreenState extends State<BottombarScreen> {
         drawer: _buildDrawer(theme, acp),
         body: Padding(
           padding: const EdgeInsets.only(bottom: 90),
-          child: _subScreenBody ?? _screens[_selectedIndex],
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.05, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(_subScreenTitle ?? _selectedIndex.toString()),
+              child: _subScreenBody ?? _screens[_selectedIndex],
+            ),
+          ),
         ),
         bottomNavigationBar: _buildCardBottomNav(isDark),
       ),
@@ -304,13 +323,13 @@ class BottombarScreenState extends State<BottombarScreen> {
                 if (acp.canRead(PermissionKeys.employee))
                   _buildDrawerItem(
                     icon: Iconsax.people,
-                    label: 'Staff',
+                    label: 'Employee',
                     isSelected: _subScreenBody == null &&
                         _selectedIndex < _currentItems.length &&
-                        _currentItems[_selectedIndex].label == 'Staff',
+                        _currentItems[_selectedIndex].label == 'Employee',
                     onTap: () {
                       final staffIndex = _currentItems
-                          .indexWhere((item) => item.label == 'Staff');
+                          .indexWhere((item) => item.label == 'Employee');
                       if (staffIndex != -1) {
                         _onItemTapped(staffIndex);
                       }

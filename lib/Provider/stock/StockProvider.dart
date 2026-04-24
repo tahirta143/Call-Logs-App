@@ -27,13 +27,13 @@ class StockProvider with ChangeNotifier {
   double usdToPkrRate = 278.0; // Default fallback
   
   // Setup Options
-  List<String> itemTypes = [];
-  List<String> categories = [];
+  List<Map<String, String>> itemTypes = [];
+  List<Map<String, String>> categories = [];
   List<Map<String, String>> subCategories = []; // [{name: 'Sub', categoryId: '1'}]
-  List<String> manufacturers = [];
-  List<String> suppliers = [];
-  List<String> units = [];
-  List<String> locations = [];
+  List<Map<String, String>> manufacturers = [];
+  List<Map<String, String>> suppliers = [];
+  List<Map<String, String>> units = [];
+  List<Map<String, String>> locations = [];
 
   File? selectedItemImage;
   final picker = ImagePicker();
@@ -65,6 +65,13 @@ class StockProvider with ChangeNotifier {
         'itemDefinitions', 'item_definitions',
         'quotations', 'quotation',
         'openingStock', 'opening_stock',
+        'itemTypes', 'item_types',
+        'categories', 'category',
+        'subCategories', 'sub_categories',
+        'manufacturers', 'manufacturer',
+        'suppliers', 'supplier',
+        'units', 'unit',
+        'locations', 'location',
         'data', 'rows', 'items'
       ];
       
@@ -365,6 +372,8 @@ class StockProvider with ChangeNotifier {
       if (response.statusCode == 200 || response.statusCode == 201) {
         await fetchItemRates();
         return true;
+      } else {
+        if (kDebugMode) print("ItemRate Save Failed: ${response.statusCode} - ${response.body}");
       }
     } catch (e) {
       if (kDebugMode) print("ItemRate Error: $e");
@@ -589,12 +598,68 @@ class StockProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      if (kDebugMode) print("Estimation Error: $e");
+      if (kDebugMode) print("SaveEstimation Error: $e");
     } finally {
       isLoading = false;
       notifyListeners();
     }
     return false;
+  }
+
+  String generateNextEstimationId() {
+    if (estimations.isEmpty) return 'EST-0001';
+
+    final estimateIds = estimations
+        .map((item) => item.estimateId?.trim() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    if (estimateIds.isEmpty) return 'EST-0001';
+
+    final idRegex = RegExp(r'^(.*?)(\d+)$');
+    Map<String, dynamic>? bestMatch;
+
+    for (final id in estimateIds) {
+      final match = idRegex.firstMatch(id);
+      if (match == null) continue;
+
+      final prefix = match.group(1) ?? '';
+      final numericPart = match.group(2) ?? '';
+      final numericValue = int.tryParse(numericPart) ?? 0;
+
+      if (bestMatch == null || numericValue > bestMatch['numericValue']) {
+        bestMatch = {
+          'prefix': prefix,
+          'numericValue': numericValue,
+          'width': numericPart.length,
+        };
+      }
+    }
+
+    if (bestMatch == null) return 'EST-0001';
+
+    final nextNumericValue = (bestMatch['numericValue'] + 1).toString().padLeft(bestMatch['width'], '0');
+    return '${bestMatch['prefix']}$nextNumericValue';
+  }
+
+  Future<EstimationData?> fetchEstimationById(String id) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final headers = await ApiService.authHeader();
+      final response = await http.get(Uri.parse("${ApiConfig.estimationsUrl}/$id"), headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final item = data['data'] ?? data;
+        return EstimationData.fromJson(item);
+      }
+    } catch (e) {
+      if (kDebugMode) print("FetchEstimationById Error: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+    return null;
   }
 
   Future<bool> deleteEstimation(String id) async {
@@ -616,19 +681,6 @@ class StockProvider with ChangeNotifier {
     return false;
   }
 
-  Future<void> fetchUsdRate() async {
-    try {
-      // Common exchange rate API
-      final response = await http.get(Uri.parse("https://v6.exchangerate-api.com/v6/latest/USD"));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        usdToPkrRate = (data['conversion_rates']['PKR'] ?? 278.0).toDouble();
-        notifyListeners();
-      }
-    } catch (e) {
-      if (kDebugMode) print("UsdRate Error: $e");
-    }
-  }
 
   // --- SETUP OPTIONS ---
 
@@ -637,25 +689,31 @@ class StockProvider with ChangeNotifier {
       final headers = await ApiService.authHeader();
       
       final responses = await Future.wait([
-        http.get(Uri.parse(ApiConfig.itemTypesUrl), headers: headers),
-        http.get(Uri.parse(ApiConfig.categoriesUrl), headers: headers),
-        http.get(Uri.parse(ApiConfig.subCategoriesUrl), headers: headers),
-        http.get(Uri.parse(ApiConfig.manufacturersUrl), headers: headers),
-        http.get(Uri.parse(ApiConfig.suppliersUrl), headers: headers),
-        http.get(Uri.parse(ApiConfig.unitsUrl), headers: headers),
-        http.get(Uri.parse(ApiConfig.locationsUrl), headers: headers),
+        http.get(Uri.parse(ApiConfig.itemTypesUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
+        http.get(Uri.parse(ApiConfig.categoriesUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
+        http.get(Uri.parse(ApiConfig.subCategoriesUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
+        http.get(Uri.parse(ApiConfig.manufacturersUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
+        http.get(Uri.parse(ApiConfig.suppliersUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
+        http.get(Uri.parse(ApiConfig.unitsUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
+        http.get(Uri.parse(ApiConfig.locationsUrl).replace(queryParameters: {'status': 'active'}), headers: headers),
       ]);
 
       if (responses[0].statusCode == 200) {
         final data = jsonDecode(responses[0].body);
         final List rows = _extractRows(data, context: 'Item Types');
-        itemTypes = rows.map((e) => e['item_type_name']?.toString() ?? e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+        itemTypes = rows.map((e) => {
+          'name': e['item_type_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
+        }).where((e) => e['name']!.isNotEmpty).toList();
       }
       
       if (responses[1].statusCode == 200) {
         final data = jsonDecode(responses[1].body);
         final List rows = _extractRows(data, context: 'Categories');
-        categories = rows.map((e) => e['category_name']?.toString() ?? e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+        categories = rows.map((e) => {
+          'name': e['category_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
+        }).where((e) => e['name']!.isNotEmpty).toList();
       }
 
       if (responses[2].statusCode == 200) {
@@ -663,6 +721,7 @@ class StockProvider with ChangeNotifier {
         final List rows = _extractRows(data, context: 'Sub Categories');
         subCategories = rows.map((e) => {
           'name': e['sub_category_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
           'categoryId': e['category_id']?.toString() ?? '',
           'categoryName': e['category_name']?.toString() ?? '',
         }).toList();
@@ -671,25 +730,37 @@ class StockProvider with ChangeNotifier {
       if (responses[3].statusCode == 200) {
         final data = jsonDecode(responses[3].body);
         final List rows = _extractRows(data, context: 'Manufacturers');
-        manufacturers = rows.map((e) => e['manufacturer_name']?.toString() ?? e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+        manufacturers = rows.map((e) => {
+          'name': e['manufacturer_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
+        }).where((e) => e['name']!.isNotEmpty).toList();
       }
 
       if (responses[4].statusCode == 200) {
         final data = jsonDecode(responses[4].body);
         final List rows = _extractRows(data, context: 'Suppliers');
-        suppliers = rows.map((e) => e['supplier_name']?.toString() ?? e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+        suppliers = rows.map((e) => {
+          'name': e['supplier_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
+        }).where((e) => e['name']!.isNotEmpty).toList();
       }
 
       if (responses[5].statusCode == 200) {
         final data = jsonDecode(responses[5].body);
         final List rows = _extractRows(data, context: 'Units');
-        units = rows.map((e) => e['unit_name']?.toString() ?? e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+        units = rows.map((e) => {
+          'name': e['unit_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
+        }).where((e) => e['name']!.isNotEmpty).toList();
       }
 
       if (responses[6].statusCode == 200) {
         final data = jsonDecode(responses[6].body);
         final List rows = _extractRows(data, context: 'Locations');
-        locations = rows.map((e) => e['location_name']?.toString() ?? e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+        locations = rows.map((e) => {
+          'name': e['location_name']?.toString() ?? e['name']?.toString() ?? '',
+          'id': e['id']?.toString() ?? e['_id']?.toString() ?? '',
+        }).where((e) => e['name']!.isNotEmpty).toList();
       }
 
       // Concurrent loading like React's Promise.all
@@ -722,6 +793,53 @@ class StockProvider with ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) print("Error fetching customer by id: $e");
+    }
+    return null;
+  }
+
+  Future<void> fetchUsdRate() async {
+    try {
+      final response = await http.get(Uri.parse(ApiConfig.exchangeRateUrl));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['result'] == 'success') {
+          usdToPkrRate = (data['conversion_rate'] as num).toDouble();
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error fetching USD rate: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchItemDetails(String itemId) async {
+    try {
+      final headers = await ApiService.authHeader();
+      final response = await http.get(Uri.parse("${ApiConfig.itemDetailsUrl}/$itemId"), headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? data;
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error fetching item details: $e");
+    }
+    return null;
+  }
+
+  Future<String?> fetchQuotationId(String supplierId, String itemId) async {
+    try {
+      final headers = await ApiService.authHeader();
+      final uri = Uri.parse(ApiConfig.itemQuotationUrl).replace(queryParameters: {
+        'supplierId': supplierId,
+        'itemId': itemId,
+      });
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data']?.toString() ?? data.toString();
+      }
+    } catch (e) {
+      if (kDebugMode) print("Error fetching quotation id: $e");
     }
     return null;
   }

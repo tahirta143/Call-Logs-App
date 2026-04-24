@@ -57,6 +57,8 @@ class StaffData {
   String? accountNumber;
   bool? enabled;
   String? status;
+  String? softwareUsername;
+  String? softwarePassword;
 
   StaffData({
     this.id,
@@ -83,6 +85,8 @@ class StaffData {
     this.accountNumber,
     this.enabled,
     this.status,
+    this.softwareUsername,
+    this.softwarePassword,
   });
 
   StaffData.fromJson(Map<String, dynamic> item) {
@@ -112,6 +116,7 @@ class StaffData {
         ? item['enabled'] 
         : (item['status']?.toString().toLowerCase() == 'active');
     status = item['status'] ?? (enabled == true ? 'active' : 'inactive');
+    softwareUsername = item['username'] ?? item['software_username'] ?? '';
   }
 
   Map<String, dynamic> toJson() {
@@ -140,6 +145,7 @@ class StaffData {
     data['account_number'] = accountNumber;
     data['enabled'] = enabled;
     data['status'] = status;
+    data['software_username'] = softwareUsername;
     return data;
   }
 }

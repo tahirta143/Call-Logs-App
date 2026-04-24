@@ -5,7 +5,11 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF00968A);   // Vibrant Teal
   static const Color accentColor = Color(0xFF004D40);    // Deep Teal
   static const Color secondaryColor = Color(0xFF00BFA5); // Bright Mint
-  static const double cardRadius = 24.0;
+  static const double cardRadius = 32.0;
+
+  // ─── LIGHT THEME COLORS (New Modern Look) ───────────────────────────────
+  static const Color lightScaffoldBg = Color(0xFFF8F9FD);
+  static const Color lightCardColor = Colors.white;
 
   // ─── DARK MODE EXACT COLORS (from screenshot) ───────────────────────────
   static const Color _darkBg        = Color(0xFF0D0D0D);  // near-black bg
@@ -22,11 +26,11 @@ class AppTheme {
       brightness: Brightness.light,
       primary: primaryColor,
       secondary: secondaryColor,
-      surface: Colors.white,
+      surface: lightCardColor,
       onSurface: accentColor,
     ),
-    scaffoldBackgroundColor: const Color(0xFFF1F8F9),
-    cardColor: Colors.white,
+    scaffoldBackgroundColor: lightScaffoldBg,
+    cardColor: lightCardColor,
     appBarTheme: const AppBarTheme(
       backgroundColor: primaryColor,
       elevation: 0,
@@ -42,7 +46,7 @@ class AppTheme {
       ),
     ),
     drawerTheme: const DrawerThemeData(
-      backgroundColor: Color(0xFFF1F8F9),
+      backgroundColor: lightScaffoldBg,
       elevation: 0,
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -281,17 +285,21 @@ class AppTheme {
         BoxShadow(
           color: isDark
               ? Colors.black.withOpacity(0.5)
-              : const Color(0x15004D40),
-          blurRadius: 24,
-          offset: const Offset(0, 12),
+              : const Color(0x0A000000), // Very soft shadow for light mode
+          blurRadius: 30,
+          offset: const Offset(0, 10),
+        ),
+        BoxShadow(
+          color: isDark
+              ? Colors.black.withOpacity(0.3)
+              : const Color(0x05000000), // Second layer for depth
+          blurRadius: 10,
+          offset: const Offset(0, 4),
         ),
       ],
-      border: Border.all(
-        color: isDark
-            ? _darkBorder
-            : Colors.teal.shade50.withOpacity(0.5),
-        width: 1,
-      ),
+      border: isDark 
+        ? Border.all(color: _darkBorder, width: 1)
+        : null, // No border in light mode for a cleaner look
     );
   }
 
@@ -301,6 +309,34 @@ class AppTheme {
     borderRadius: BorderRadius.circular(20),
     border: Border.all(color: _darkBorder, width: 1),
   );
+
+  /// Premium Animated Dialog Helper
+  static Future<T?> showAnimatedDialog<T>({
+    required BuildContext context,
+    required Widget child,
+    bool barrierDismissible = true,
+  }) {
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: '',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) => Center(child: child),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: anim1,
+          child: ScaleTransition(
+            scale: CurvedAnimation(
+              parent: anim1,
+              curve: Curves.easeOutBack,
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
 
   /// Selected nav item pill (teal glow like Dashboard in sidebar)
   static BoxDecoration navSelectedDecoration() => BoxDecoration(

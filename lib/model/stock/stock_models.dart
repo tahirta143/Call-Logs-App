@@ -51,6 +51,7 @@ class ItemRateData {
   final String? itemSpecification;
   final String? specification;
   final String? description;
+  final String? manufacturer;
   final Map<String, dynamic>? raw;
 
   ItemRateData({
@@ -65,6 +66,7 @@ class ItemRateData {
     this.itemSpecification,
     this.specification,
     this.description,
+    this.manufacturer,
     this.raw,
   });
 
@@ -81,6 +83,7 @@ class ItemRateData {
       itemSpecification: (json['item_specification'] ?? json['itemSpecification'] ?? json['specification'] ?? json['description'])?.toString(),
       specification: (json['item_specification'] ?? json['itemSpecification'] ?? json['specification'])?.toString(),
       description: (json['item_specification'] ?? json['itemSpecification'] ?? json['specification'] ?? json['description'])?.toString(),
+      manufacturer: (json['manufacturer_name'] ?? json['manufacturerName'] ?? json['manufacturer'])?.toString(),
       raw: json['raw'] ?? json,
     );
   }

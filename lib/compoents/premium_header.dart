@@ -28,23 +28,31 @@ class PremiumActionHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Container(
-              height: 50,
+              height: 52,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(15),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200,
+                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100,
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: TextField(
                 controller: controller,
                 onChanged: onChanged,
                 decoration: InputDecoration(
                   hintText: hintText,
-                  hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                  prefixIcon: Icon(Iconsax.search_normal, size: 18, color: Colors.grey.shade500),
+                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.w500),
+                  prefixIcon: Icon(Iconsax.search_normal, size: 18, color: AppTheme.primaryColor.withOpacity(0.6)),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
@@ -54,20 +62,20 @@ class PremiumActionHeader extends StatelessWidget {
             GestureDetector(
               onTap: onAddTap,
               child: Container(
-                height: 50,
-                width: 50,
+                height: 52,
+                width: 52,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(15),
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.primaryColor.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: const Icon(Iconsax.add, color: Colors.white),
+                child: const Icon(Iconsax.add, color: Colors.white, size: 24),
               ),
             ),
           ],

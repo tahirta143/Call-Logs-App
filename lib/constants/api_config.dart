@@ -31,6 +31,19 @@ class ApiConfig {
   static const String locationsUrl = '$baseUrl/locations';
   static const String productsUrl = '$baseUrl/products';
   static const String dashboardUrl = '$baseUrl/dashboard';
+
+  // Setup options for Staff
+  static const String departmentsUrl = '$baseUrl/departments';
+  static const String designationsUrl = '$baseUrl/designations';
+  static const String employeeTypesUrl = '$baseUrl/employee-types';
+  static const String dutyShiftsUrl = '$baseUrl/duty-shifts';
+  static const String banksUrl = '$baseUrl/banks';
+
+  // Item Rate Helpers
+  static const String itemDetailsUrl = '$baseUrl/item-definitions'; // GET /item-definitions/:id
+  static const String itemQuotationUrl = '$baseUrl/item-rates/quotation-id'; // GET /item-rates/quotation-id?supplierId=...&itemId=...
+  static const String exchangeRateUrl = 'https://v6.exchangerate-api.com/v6/9609f0d93ee61c0884cde4e6/pair/USD/PKR';
+
   // Image helpers
   static const String uploadsUrl = 'http://10.0.2.2:5000'; // Base URL for public files
 
