@@ -213,6 +213,7 @@ class EstimationData {
   final String? discountTotal;
   final String? finalTotal;
   final String? status;
+  final String? taxMode;
   final List<dynamic>? items;
 
   EstimationData({
@@ -230,6 +231,7 @@ class EstimationData {
     this.discountTotal,
     this.finalTotal,
     this.status,
+    this.taxMode,
     this.items,
   });
 
@@ -252,6 +254,7 @@ class EstimationData {
       discountTotal: (json['discount_total'] ?? json['discountTotal'] ?? json['total_discount'] ?? json['totalDiscount'])?.toString(),
       finalTotal: (json['final_total'] ?? json['finalTotal'] ?? json['total_final'] ?? json['totalFinal'])?.toString(),
       status: (json['status'] ?? 'active')?.toString(),
+      taxMode: (json['tax_mode'] ?? json['taxMode'])?.toString(),
       items: json['items'],
     );
   }

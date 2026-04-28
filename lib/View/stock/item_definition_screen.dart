@@ -93,28 +93,32 @@ class _ItemDefinitionScreenState extends State<ItemDefinitionScreen> {
               : AnimationLimiter(
                   child: RefreshIndicator(
                     onRefresh: () => provider.fetchItems(search: _searchController.text),
-                    child: ListView.builder(
+                    child: GridView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                       physics: const AlwaysScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisExtent: 220, // Height to accommodate GridStockCard vertically
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
                       itemCount: provider.items.length,
                       itemBuilder: (context, index) {
                         final item = provider.items[index];
-                        return AnimationConfiguration.staggeredList(
+                        return AnimationConfiguration.staggeredGrid(
                           position: index,
+                          columnCount: 2,
                           duration: const Duration(milliseconds: 375),
                           child: SlideAnimation(
                             verticalOffset: 50.0,
                             child: FadeInAnimation(
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: StockCard(
-                                  title: item.itemName ?? 'N/A',
-                                  subtitle: "Type: ${item.itemType ?? 'N/A'} | Cat: ${item.category ?? 'N/A'}",
-                                  trailing: item.salePrice != null ? "Rs ${item.salePrice}" : null,
-                                  icon: Iconsax.box,
-                                  imageUrl: ApiConfig.getImageUrl(item.imageName),
-                                  onTap: canUpdate ? () => _openItemDialog(item) : null,
-                                ),
+                              child: GridStockCard(
+                                title: item.itemName ?? 'N/A',
+                                subtitle: "Type: ${item.itemType ?? 'N/A'} | Cat: ${item.category ?? 'N/A'}",
+                                trailing: item.salePrice != null ? "Rs ${item.salePrice}" : null,
+                                icon: Iconsax.box,
+                                imageUrl: ApiConfig.getImageUrl(item.imageName),
+                                onTap: canUpdate ? () => _openItemDialog(item) : null,
                               ),
                             ),
                           ),
@@ -340,7 +344,7 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
                   ],
                 ),
               ),
-            Expanded(
+              Expanded(
               child: Form(
                 key: _formKey,
                 child: ListView(
@@ -374,79 +378,65 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
                     const SizedBox(height: 24),
                     
                     _buildSection('Basic Information'),
-                    Row(
-                      children: [
-                        Expanded(child: AppTextField(controller: codeController, label: 'Code', prefixIcon: Iconsax.code, readOnly: true)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildDropdown('Type', provider.itemTypes, selectedType, (v) => setState(() => selectedType = v), isRequired: true)),
-                      ],
+                    _buildResponsiveRow(
+                      AppTextField(controller: codeController, label: 'Code', prefixIcon: Iconsax.code, readOnly: true),
+                      _buildDropdown('Type', provider.itemTypes, selectedType, (v) => setState(() => selectedType = v), isRequired: true),
                     ),
                     const SizedBox(height: 16),
                     AppTextField(controller: nameController, label: 'Item Name', prefixIcon: Iconsax.box, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null),
                     
                     const SizedBox(height: 24),
                     _buildSection('Classification'),
-                    Row(
-                      children: [
-                        Expanded(child: _buildDropdown('Category', provider.categories, selectedCategory, (v) {
-                          setState(() { selectedCategory = v; selectedSubCategory = null; });
-                        }, isRequired: true)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildDropdown('Sub Category', filteredSubCats, selectedSubCategory, (v) => setState(() => selectedSubCategory = v))),
-                      ],
+                    _buildResponsiveRow(
+                      _buildDropdown('Category', provider.categories, selectedCategory, (v) {
+                        setState(() { selectedCategory = v; selectedSubCategory = null; });
+                      }, isRequired: true),
+                      _buildDropdown('Sub Category', filteredSubCats, selectedSubCategory, (v) => setState(() => selectedSubCategory = v)),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(flex: 2, child: _buildDropdown('Unit', provider.units, selectedUnit, (v) {
-                          setState(() {
-                            selectedUnit = v;
-                            if (v != null && (unitQtyController.text.isEmpty || unitQtyController.text == '0')) {
-                              unitQtyController.text = '1';
-                            }
-                          });
-                        }, isRequired: true)),
-                        const SizedBox(width: 12),
-                        Expanded(child: AppTextField(controller: unitQtyController, label: 'Unit Qty', prefixIcon: Iconsax.weight_1, keyboardType: TextInputType.number)),
-                      ],
+                    _buildResponsiveRow(
+                      _buildDropdown('Unit', provider.units, selectedUnit, (v) {
+                        setState(() {
+                          selectedUnit = v;
+                          if (v != null && (unitQtyController.text.isEmpty || unitQtyController.text == '0')) {
+                            unitQtyController.text = '1';
+                          }
+                        });
+                      }, isRequired: true),
+                      AppTextField(controller: unitQtyController, label: 'Unit Qty', prefixIcon: Iconsax.weight_1, keyboardType: TextInputType.number),
+                      flex1: 2,
                     ),
 
                     const SizedBox(height: 24),
                     _buildSection('Inventory & Pricing'),
-                    Row(
-                      children: [
-                        Expanded(child: AppTextField(
-                          controller: purchasePriceController, 
-                          label: 'Purchase Price', 
-                          prefixIcon: Iconsax.money_recive, 
-                          keyboardType: TextInputType.number,
-                          onChanged: (v) => setState(() {}),
-                        )),
-                        const SizedBox(width: 12),
-                        Expanded(child: AppTextField(
-                          controller: salePriceController, 
-                          label: 'Sale Price', 
-                          prefixIcon: Iconsax.money_send, 
-                          keyboardType: TextInputType.number,
-                          onChanged: (v) => setState(() {}),
-                          validator: (v) {
-                            if (v != null && v.isNotEmpty && purchasePriceController.text.isNotEmpty) {
-                              final p = double.tryParse(purchasePriceController.text) ?? 0;
-                              final s = double.tryParse(v) ?? 0;
-                              if (s <= p) return 'Must be > Purchase';
-                            }
-                            return null;
-                          },
-                        )),
-                      ],
+                    _buildResponsiveRow(
+                      AppTextField(
+                        controller: purchasePriceController, 
+                        label: 'Purchase Price', 
+                        prefixIcon: Iconsax.money_recive, 
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => setState(() {}),
+                      ),
+                      AppTextField(
+                        controller: salePriceController, 
+                        label: 'Sale Price', 
+                        prefixIcon: Iconsax.money_send, 
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => setState(() {}),
+                        validator: (v) {
+                          if (v != null && v.isNotEmpty && purchasePriceController.text.isNotEmpty) {
+                            final p = double.tryParse(purchasePriceController.text) ?? 0;
+                            final s = double.tryParse(v) ?? 0;
+                            if (s <= p) return 'Must be > Purchase';
+                          }
+                          return null;
+                        },
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: AppTextField(controller: minLevelQtyController, label: 'Reorder Level', prefixIcon: Iconsax.arrow_down, keyboardType: TextInputType.number, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildDropdown('Location', provider.locations, selectedLocation, (v) => setState(() => selectedLocation = v))),
-                      ],
+                    _buildResponsiveRow(
+                      AppTextField(controller: minLevelQtyController, label: 'Reorder Level', prefixIcon: Iconsax.arrow_down, keyboardType: TextInputType.number, isRequired: true, validator: (v) => v!.isEmpty ? 'Required' : null),
+                      _buildDropdown('Location', provider.locations, selectedLocation, (v) => setState(() => selectedLocation = v)),
                     ),
 
                     const SizedBox(height: 24),
@@ -463,19 +453,16 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
 
                     const SizedBox(height: 24),
                     _buildSection('Settings'),
-                    Row(
-                      children: [
-                        Expanded(child: _buildRadio('Expirable', expirable, (v) => setState(() => expirable = v))),
-                        if (expirable == 'yes')
-                        Expanded(child: AppTextField(controller: expiryDaysController, label: 'Expiry Days', prefixIcon: Iconsax.timer_1, keyboardType: TextInputType.number, isRequired: true, validator: (v) => expirable == 'yes' && (v == null || v.isEmpty) ? 'Required' : null)),
-                      ],
+                    _buildResponsiveRow(
+                      _buildRadio('Expirable', expirable, (v) => setState(() => expirable = v)),
+                      expirable == 'yes' 
+                        ? AppTextField(controller: expiryDaysController, label: 'Expiry Days', prefixIcon: Iconsax.timer_1, keyboardType: TextInputType.number, isRequired: true, validator: (v) => expirable == 'yes' && (v == null || v.isEmpty) ? 'Required' : null)
+                        : const SizedBox(),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(child: _buildRadio('Cost Item', costItem, (v) => setState(() => costItem = v))),
-                        Expanded(child: _buildRadio('Stop Sale', stopSale, (v) => setState(() => stopSale = v))),
-                      ],
+                    _buildResponsiveRow(
+                      _buildRadio('Cost Item', costItem, (v) => setState(() => costItem = v)),
+                      _buildRadio('Stop Sale', stopSale, (v) => setState(() => stopSale = v)),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -607,6 +594,28 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
     );
   }
 
+  Widget _buildResponsiveRow(Widget child1, Widget child2, {int flex1 = 1, int flex2 = 1}) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          child1,
+          const SizedBox(height: 16),
+          child2,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: flex1, child: child1),
+        const SizedBox(width: 12),
+        Expanded(flex: flex2, child: child2),
+      ],
+    );
+  }
+
   Widget _buildDropdown(String label, List<Map<String, String>> options, String? value, Function(String?) onChanged, {bool isRequired = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<String> names = options.map((e) => e['name']!).toList();
@@ -633,6 +642,7 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryColor)),
       ),
       icon: const Icon(Iconsax.arrow_down_1, size: 16),
+      isExpanded: true,
       items: names.map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 12, color: isDark ? Colors.white : Colors.black87), overflow: TextOverflow.ellipsis))).toList(),
       onChanged: onChanged,
     );

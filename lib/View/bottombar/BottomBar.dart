@@ -337,9 +337,19 @@ class BottombarScreenState extends State<BottombarScreen> {
                     },
                   ),
 
+                if (acp.canRead(PermissionKeys.service))
+                  _buildDrawerItem(
+                    icon: Iconsax.category,
+                    label: 'Services & Products',
+                    isSelected: _subScreenTitle == 'Services & Products',
+                    onTap: () {
+                      navigateToSubScreen(const ServicesProductsScreen(), 'Services & Products');
+                      Navigator.pop(context);
+                    },
+                  ),
+
                 if (acp.isAdmin ||
                     acp.canRead(PermissionKeys.itemDefinition) ||
-                    acp.canRead(PermissionKeys.service) ||
                     acp.canRead(PermissionKeys.openingStock) ||
                     acp.canRead(PermissionKeys.itemRate) ||
                     acp.canRead(PermissionKeys.quotation) ||
@@ -349,7 +359,6 @@ class BottombarScreenState extends State<BottombarScreen> {
                     label: 'Stock',
                     initiallyExpanded: [
                       'Item Definition',
-                      'Services & Products',
                       'Opening Stock',
                       'Item Rate',
                       'Quotation',
@@ -363,16 +372,6 @@ class BottombarScreenState extends State<BottombarScreen> {
                           isSelected: _subScreenTitle == 'Item Definition',
                           onTap: () {
                             navigateToSubScreen(const ItemDefinitionScreen(), 'Item Definition');
-                            Navigator.pop(context);
-                          },
-                        ),
-                      if (acp.canRead(PermissionKeys.service))
-                        _buildDrawerItem(
-                          icon: Iconsax.category,
-                          label: 'Services & Products',
-                          isSelected: _subScreenTitle == 'Services & Products',
-                          onTap: () {
-                            navigateToSubScreen(const ServicesProductsScreen(), 'Services & Products');
                             Navigator.pop(context);
                           },
                         ),

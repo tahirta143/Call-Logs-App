@@ -24,6 +24,7 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
   String? selectedService;
   String? serviceId;
   String estimateId = '';
+  String taxMode = 'withoutTax';
 
   // Item Entry State
   String? selectedItem;
@@ -93,6 +94,7 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
       designation = est.designation ?? '';
       selectedService = est.serviceName;
       serviceId = est.serviceId;
+      taxMode = est.taxMode ?? 'withoutTax';
 
       if (est.items != null && est.items is List) {
         _rows = (est.items as List).map((it) => {
@@ -130,9 +132,10 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
     final purTotal = qty * purPrice;
     final saleTotal = qty * salePrice;
     final saleTotalWithTax = qty * salePriceWithTax;
-    final discPerUnit = (salePriceWithTax * discPercent) / 100;
+    final basePrice = taxMode == 'withTax' ? salePriceWithTax : salePrice;
+    final discPerUnit = (basePrice * discPercent) / 100;
     final discAmt = discPerUnit * qty;
-    final finalPrice = (salePriceWithTax - discPerUnit).clamp(0.0, double.infinity);
+    final finalPrice = (basePrice - discPerUnit).clamp(0.0, double.infinity);
     final finalTotal = finalPrice * qty;
 
     setState(() {
@@ -145,15 +148,40 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
     });
   }
 
-  void _onCustomerChanged(String company, StockProvider sp) {
+  Future<void> _onCustomerChanged(String company, StockProvider sp) async {
     try {
-      final found = sp.customers.firstWhere((c) => (c.company ?? c.name) == company);
+      final searchName = company.trim().toLowerCase();
+      final found = sp.customers.cast<CustomerData?>().firstWhere(
+        (c) => (c?.company?.trim().toLowerCase() ?? c?.name?.trim().toLowerCase()) == searchName,
+        orElse: () => null,
+      );
+      
+      if (found == null) {
+        setState(() {
+          selectedCustomer = company;
+          customerId = null;
+          person = '';
+          designation = '';
+        });
+        return;
+      }
+      
       setState(() {
         selectedCustomer = company;
         customerId = found.id;
         person = found.person ?? '';
         designation = found.designation ?? '';
       });
+      
+      if (found.id != null) {
+        final fullCustomer = await sp.fetchCustomerById(found.id!);
+        if (fullCustomer != null && mounted) {
+          setState(() {
+            person = fullCustomer.person ?? person;
+            designation = fullCustomer.designation ?? designation;
+          });
+        }
+      }
     } catch (_) {
       setState(() {
         selectedCustomer = company;
@@ -276,12 +304,17 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
       'estimate_date': '${estimationDate.year}-${estimationDate.month.toString().padLeft(2, '0')}-${estimationDate.day.toString().padLeft(2, '0')}',
       'customer_id': customerId != null ? int.tryParse(customerId!) : null,
       'service_id': serviceId != null ? int.tryParse(serviceId!) : null,
+      'tax_mode': taxMode,
       'status': 'active',
       'items': finalRows.map((r) => {
         'item_rate_id': int.tryParse(r['itemRateId']?.toString() ?? ''),
+        'item_name': r['item'] ?? '',
         'qty': double.tryParse(r['qty']?.toString() ?? '0'),
-        'description': r['description'] ?? '',
+        'purchase_price': double.tryParse(r['purchasePrice']?.toString() ?? '0'),
+        'sale_price': double.tryParse(r['salePrice']?.toString() ?? '0'),
+        'sale_price_with_tax': double.tryParse(r['salePriceWithTax']?.toString() ?? '0'),
         'discount_percent': double.tryParse(r['discountPercentage']?.toString() ?? '0'),
+        'description': r['description'] ?? '',
       }).toList(),
     };
 
@@ -459,6 +492,48 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
             options: sp.services.map((s) => s.serviceName ?? '').where((e) => e.isNotEmpty).toList(),
             onChanged: (v) => _onServiceChanged(v ?? '', sp),
           ),
+          const SizedBox(height: 14),
+          _buildTaxModeRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaxModeRow() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel('Tax Mode', isRequired: true),
+        Row(
+          children: [
+            const SizedBox(width: 8),
+            _radio('Without Tax', 'withoutTax'),
+            const SizedBox(width: 20),
+            _radio('With Tax', 'withTax'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _radio(String label, String value) {
+    return GestureDetector(
+      onTap: () {
+        setState(() => taxMode = value);
+        _calculateValues();
+      },
+      child: Row(
+        children: [
+          Radio<String>(
+            value: value,
+            groupValue: taxMode,
+            activeColor: AppTheme.primaryColor,
+            onChanged: (v) {
+              setState(() => taxMode = v!);
+              _calculateValues();
+            },
+          ),
+          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -526,8 +601,10 @@ class _EstimationFormDialogState extends State<EstimationFormDialog> {
                 _pricingRow('Pur. Price', _purPriceCtrl, 'Pur. Total', _purchaseTotal),
                 const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                 _pricingRow('Sale Price', _salePriceCtrl, 'Sale Total', _saleTotal),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
-                _pricingRow('Sale Price (Tax)', _salePriceWithTaxCtrl, 'Sale Total (Tax)', _saleTotalWithTax),
+                if (taxMode == 'withTax') ...[
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
+                  _pricingRow('Sale Price (Tax)', _salePriceWithTaxCtrl, 'Sale Total (Tax)', _saleTotalWithTax),
+                ],
                 const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1)),
                 _summaryRow('Discount Amount', _discountAmount, isNegative: true),
                 _summaryRow('Final Price', _finalPrice, isBold: true, color: AppTheme.primaryColor),

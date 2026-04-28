@@ -159,11 +159,30 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
     });
   }
 
-  // ── Auto-calc total
+  // ── Auto-calc total and tax for current item
+  double get _currentPriceNum => double.tryParse(_priceCtrl.text) ?? 0;
+  double get _currentQtyNum => double.tryParse(_qtyCtrl.text) ?? 0;
+  
   String get _currentTotal {
-    final p = double.tryParse(_priceCtrl.text) ?? 0;
-    final q = double.tryParse(_qtyCtrl.text) ?? 0;
-    final t = p * q;
+    final t = _currentPriceNum * _currentQtyNum;
+    return t == 0 ? '' : t.toStringAsFixed(2);
+  }
+
+  String get _currentGst {
+    final gst = (_currentPriceNum * 18) / 100;
+    return gst == 0 ? '' : gst.toStringAsFixed(2);
+  }
+
+  String get _currentRateWithGst {
+    final gst = (_currentPriceNum * 18) / 100;
+    final r = _currentPriceNum + gst;
+    return r == 0 ? '' : r.toStringAsFixed(2);
+  }
+
+  String get _currentTotalWithGst {
+    final gst = (_currentPriceNum * 18) / 100;
+    final r = _currentPriceNum + gst;
+    final t = r * _currentQtyNum;
     return t == 0 ? '' : t.toStringAsFixed(2);
   }
 
@@ -756,10 +775,22 @@ class _QuotationFormDialogState extends State<QuotationFormDialog> {
                   isRequired: true,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(child: _readOnlyField('Total', _currentTotal, hint: 'Auto')),
             ],
           ),
+          const SizedBox(height: 14),
+          if (taxMode == 'withTax') ...[
+            Row(
+              children: [
+                Expanded(child: _readOnlyField('18% GST', _currentGst, hint: 'Auto')),
+                const SizedBox(width: 12),
+                Expanded(child: _readOnlyField('Rate w/ GST', _currentRateWithGst, hint: 'Auto')),
+                const SizedBox(width: 12),
+                Expanded(child: _readOnlyField('Total w/ GST', _currentTotalWithGst, hint: 'Auto')),
+              ],
+            ),
+          ] else ...[
+            _readOnlyField('Total', _currentTotal, hint: 'Auto'),
+          ],
           const SizedBox(height: 14),
           _labeledTextField(
             label: 'Description',
